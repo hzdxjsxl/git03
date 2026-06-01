@@ -216,8 +216,8 @@ export class ClusterRenderer {
   getHoverInfo(screenX: number, screenY: number): HoverInfo {
     const dataPoint = this.screenToData(screenX, screenY);
     const { scale } = this.getScaleAndOffset();
-    const pointRadius = 3 * scale + 2;
-    const centroidRadius = 12 * scale + 4;
+    const pointRadius = 10 * scale;
+    const centroidRadius = 20 * scale;
 
     let nearestCentroidDist = Infinity;
     let nearestCentroidIdx = -1;

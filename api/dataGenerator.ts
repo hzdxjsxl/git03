@@ -1,5 +1,6 @@
 import type { Point } from '../shared/types';
 
+// 多簇随机游走坐标生成器
 interface ClusterConfig {
   centerX: number;
   centerY: number;

@@ -12,6 +12,8 @@ const Home: React.FC = () => {
   const rendererRef = useRef<ClusterRenderer | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const bufferRef = useRef<Point[]>([]);
+  const isRunningRef = useRef(true);
+  const isConnectedRef = useRef(false);
 
   const [k, setK] = useState(4);
   const [alpha, setAlpha] = useState(0.1);
@@ -52,18 +54,20 @@ const Home: React.FC = () => {
 
   const connectWebSocket = useCallback(() => {
     if (wsRef.current) {
-      wsRef.current.close();
+      return;
     }
 
     const ws = new WebSocket('ws://localhost:3001');
     wsRef.current = ws;
 
     ws.onopen = () => {
+      console.log('WebSocket connected');
+      isConnectedRef.current = true;
       setIsConnected(true);
     };
 
     ws.onmessage = (event) => {
-      if (!isRunning) return;
+      if (!isRunningRef.current) return;
 
       try {
         const message = JSON.parse(event.data);
@@ -98,36 +102,46 @@ const Home: React.FC = () => {
     };
 
     ws.onclose = () => {
+      console.log('WebSocket disconnected');
+      isConnectedRef.current = false;
       setIsConnected(false);
+      if (wsRef.current === ws) {
+        wsRef.current = null;
+      }
     };
 
-    ws.onerror = () => {
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+      isConnectedRef.current = false;
       setIsConnected(false);
+      if (wsRef.current === ws) {
+        wsRef.current = null;
+      }
     };
+  }, []);
+
+  useEffect(() => {
+    isRunningRef.current = isRunning;
   }, [isRunning]);
 
   useEffect(() => {
     initCanvas();
     initClusterer();
+    connectWebSocket();
 
     return () => {
       if (rendererRef.current) {
         rendererRef.current.destroy();
       }
       if (wsRef.current) {
-        wsRef.current.close();
+        try {
+          wsRef.current.close();
+        } catch (e) {
+          console.error('Error closing WebSocket on cleanup:', e);
+        }
+        wsRef.current = null;
       }
     };
-  }, []);
-
-  useEffect(() => {
-    if (isConnected) {
-      connectWebSocket();
-    }
-  }, [isRunning]);
-
-  useEffect(() => {
-    connectWebSocket();
   }, []);
 
   useEffect(() => {
