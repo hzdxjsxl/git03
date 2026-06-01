@@ -20,12 +20,12 @@ export class GreedyMesher {
         const offsetZ = chunkZ * size;
 
         const faces = [
-            { axis: 0, normal: [-1, 0, 0], shift: [-1, 0, 0] },
-            { axis: 0, normal: [1, 0, 0], shift: [1, 0, 0] },
-            { axis: 1, normal: [0, -1, 0], shift: [0, -1, 0] },
-            { axis: 1, normal: [0, 1, 0], shift: [0, 1, 0] },
-            { axis: 2, normal: [0, 0, -1], shift: [0, 0, -1] },
-            { axis: 2, normal: [0, 0, 1], shift: [0, 0, 1] }
+            { axis: 0, normal: [-1, 0, 0] },
+            { axis: 0, normal: [1, 0, 0] },
+            { axis: 1, normal: [0, -1, 0] },
+            { axis: 1, normal: [0, 1, 0] },
+            { axis: 2, normal: [0, 0, -1] },
+            { axis: 2, normal: [0, 0, 1] }
         ];
 
         for (const face of faces) {
@@ -40,34 +40,31 @@ export class GreedyMesher {
     }
 
     meshFace(voxels, size, face, offsetX, offsetZ) {
-        const { axis, normal, shift } = face;
-        const [sx, sy, sz] = shift;
+        const { axis, normal } = face;
 
         const mask = new Uint8Array(size * size);
-        const pos = [0, 0, 0];
 
-        const otherAxis1 = (axis + 1) % 3;
-        const otherAxis2 = (axis + 2) % 3;
+        const xAxis = (axis + 1) % 3;
+        const yAxis = (axis + 2) % 3;
 
         for (let i = 0; i < size; i++) {
             for (let j = 0; j < size; j++) {
+                const pos = [0, 0, 0];
+                pos[xAxis] = i;
+                pos[yAxis] = j;
                 pos[axis] = -1;
-                pos[otherAxis1] = i;
-                pos[otherAxis2] = j;
 
-                let filled = false;
+                let prevSolid = false;
 
                 for (let d = 0; d <= size; d++) {
-                    const p0 = this.getVoxel(voxels, size, pos[0], pos[1], pos[2]);
-                    pos[axis] += shift[axis];
-                    const p1 = this.getVoxel(voxels, size, pos[0], pos[1], pos[2]);
-
-                    if (!filled && p1) {
-                        filled = true;
-                        mask[j * size + i] = p1;
-                    } else if (filled && !p1) {
-                        filled = false;
+                    const solid = this.getVoxel(voxels, size, pos[0], pos[1], pos[2]) !== 0;
+                    
+                    if (!prevSolid && solid) {
+                        mask[j * size + i] = 1;
                     }
+                    
+                    prevSolid = solid;
+                    pos[axis]++;
                 }
             }
         }
@@ -76,8 +73,7 @@ export class GreedyMesher {
         while (i < size) {
             let j = 0;
             while (j < size) {
-                const voxelType = mask[j * size + i];
-                if (voxelType) {
+                if (mask[j * size + i]) {
                     const w = this.getWidth(mask, size, i, j);
                     const h = this.getHeight(mask, size, i, j, w);
 
@@ -99,7 +95,7 @@ export class GreedyMesher {
 
     getWidth(mask, size, x, y) {
         let w = 1;
-        while (x + w < size && mask[y * size + x + w] === mask[y * size + x]) {
+        while (x + w < size && mask[y * size + x + w]) {
             w++;
         }
         return w;
@@ -110,7 +106,7 @@ export class GreedyMesher {
         while (y + h < size) {
             let valid = true;
             for (let i = 0; i < width; i++) {
-                if (mask[(y + h) * size + x + i] !== mask[y * size + x]) {
+                if (!mask[(y + h) * size + x + i]) {
                     valid = false;
                     break;
                 }
@@ -135,9 +131,9 @@ export class GreedyMesher {
             const px = normal[0] < 0 ? 0 : 1;
             this.vertices.push(
                 px + offsetX, y + 0.5, x + 0.5 + offsetZ,
-                px + offsetX, y + 0.5, x + height + 0.5 + offsetZ,
-                px + offsetX, y + width + 0.5, x + height + 0.5 + offsetZ,
-                px + offsetX, y + width + 0.5, x + 0.5 + offsetZ
+                px + offsetX, y + height + 0.5, x + 0.5 + offsetZ,
+                px + offsetX, y + height + 0.5, x + width + 0.5 + offsetZ,
+                px + offsetX, y + 0.5, x + width + 0.5 + offsetZ
             );
         } else if (axis === 1) {
             const py = normal[1] < 0 ? 0 : 1;
