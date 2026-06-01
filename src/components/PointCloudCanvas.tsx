@@ -39,6 +39,7 @@ export default function PointCloudCanvas() {
   const handleComplete = useCallback(() => {
     setIsLoading(false);
     setIsRendering(true);
+    rendererRef.current?.finalizeLoad();
   }, [setIsLoading, setIsRendering]);
 
   const handleError = useCallback(

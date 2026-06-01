@@ -36,10 +36,15 @@ router.get('/:datasetId', async (req: Request, res: Response): Promise<void> => 
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
+    let clientDisconnected = false;
+    req.on('close', () => { clientDisconnected = true; });
+
     const totalPoints = generator.getPointCount();
     const totalChunks = Math.ceil(totalPoints / chunkSize);
 
     for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+      if (clientDisconnected) break;
+
       const startIndex = chunkIndex * chunkSize;
       const pointsInChunk = Math.min(chunkSize, totalPoints - startIndex);
 
@@ -55,9 +60,19 @@ router.get('/:datasetId', async (req: Request, res: Response): Promise<void> => 
 
       if (!res.write(chunk)) {
         await new Promise<void>((resolve) => {
-          res.once('drain', resolve);
+          if (clientDisconnected) { resolve(); return; }
+          const onDrain = (): void => { cleanup(); resolve(); };
+          const onClose = (): void => { cleanup(); resolve(); };
+          const cleanup = (): void => {
+            res.removeListener('drain', onDrain);
+            res.removeListener('close', onClose);
+          };
+          res.once('drain', onDrain);
+          res.once('close', onClose);
         });
       }
+
+      if (clientDisconnected) break;
     }
 
     res.end();
@@ -66,7 +81,7 @@ router.get('/:datasetId', async (req: Request, res: Response): Promise<void> => 
     if (!res.headersSent) {
       res.status(500).json({ success: false, error: 'Failed to stream point cloud' });
     } else {
-      res.end();
+      try { res.end(); } catch {}
     }
   }
 });

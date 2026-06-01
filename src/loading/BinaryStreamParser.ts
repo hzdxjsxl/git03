@@ -30,11 +30,10 @@ export class BinaryStreamParser {
       }
 
       const pointDataOffset = offset + this.chunkHeaderSize;
-      const floatData = new Float32Array(
-        data.buffer,
-        data.byteOffset + pointDataOffset,
-        pointCount * POINT_STRIDE
-      );
+      const rawBytes = pointCount * POINT_BYTE_SIZE;
+      const floatData = new Float32Array(pointCount * POINT_STRIDE);
+      const srcView = new Uint8Array(data.buffer, data.byteOffset + pointDataOffset, rawBytes);
+      new Uint8Array(floatData.buffer).set(srcView);
 
       results.push({
         chunkIndex,

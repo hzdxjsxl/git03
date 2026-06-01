@@ -3,10 +3,15 @@
  */
 import app from './app.js';
 
-/**
- * start server with port
- */
 const PORT = process.env.PORT || 3001;
+
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught exception:', err);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled rejection:', reason);
+});
 
 const server = app.listen(PORT, () => {
   console.log(`Server ready on port ${PORT}`);

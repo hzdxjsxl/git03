@@ -74,11 +74,11 @@ export interface DepthSortResult {
 }
 
 export const DEFAULT_RENDER_PARAMS: RenderParams = {
-  pointSize: 8.0,
-  sigma: 0.5,
-  alphaThreshold: 0.01,
-  brightness: 1.0,
+  pointSize: 25.0,
+  sigma: 0.45,
+  alphaThreshold: 0.005,
+  brightness: 1.5,
   showNormals: false,
   sortEnabled: true,
-  sortInterval: 2,
+  sortInterval: 3,
 };

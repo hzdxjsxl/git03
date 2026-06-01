@@ -1,23 +1,18 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { DepthSorter, SortResult } from './DepthSorter';
 import {
   RenderParams,
   PerformanceMetrics,
   DEFAULT_RENDER_PARAMS,
   POINT_STRIDE,
-  POINT_BYTE_SIZE,
 } from '../types/pointcloud';
 
 const vertexShader = `
 precision highp float;
 
-attribute vec2 corner;
-
-attribute vec3 instancePosition;
-attribute vec3 instanceColor;
-attribute vec3 instanceNormal;
-attribute float instanceSize;
+attribute vec3 aColor;
+attribute vec3 aNormal;
+attribute float aPointSize;
 
 uniform float uPointScale;
 uniform float uMinPointSize;
@@ -25,33 +20,22 @@ uniform float uMaxPointSize;
 uniform float uViewportHeight;
 
 varying vec3 vColor;
-varying vec3 vNormal;
-varying vec2 vUv;
-varying float vPointSize;
-varying vec3 vViewPosition;
-varying float vDepth;
+varying vec3 vWorldNormal;
+varying vec3 vWorldPosition;
 
 void main() {
-    vec4 mvPosition = modelViewMatrix * vec4(instancePosition, 1.0);
-    vViewPosition = mvPosition.xyz;
-    vDepth = -mvPosition.z;
-    
-    float dist = length(mvPosition.xyz);
-    float size = instanceSize * uPointScale * (uViewportHeight / dist);
-    size = clamp(size, uMinPointSize, uMaxPointSize);
-    
-    vec3 right = vec3(modelViewMatrix[0].x, modelViewMatrix[1].x, modelViewMatrix[2].x);
-    vec3 up = vec3(modelViewMatrix[0].y, modelViewMatrix[1].y, modelViewMatrix[2].y);
-    
-    vec3 offset = (right * corner.x + up * corner.y) * size * 0.5;
-    vec4 worldPos = mvPosition + vec4(offset, 0.0);
-    
-    vPointSize = size;
-    vUv = corner * 0.5 + 0.5;
-    vColor = instanceColor;
-    vNormal = normalize((modelViewMatrix * vec4(instanceNormal, 0.0)).xyz);
-    
-    gl_Position = projectionMatrix * worldPos;
+    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+
+    float dist = -mvPosition.z;
+    float fovFactor = projectionMatrix[1][1];
+    float pixelSize = aPointSize * uPointScale * fovFactor * uViewportHeight / (2.0 * max(dist, 0.001));
+    gl_PointSize = clamp(pixelSize, uMinPointSize, uMaxPointSize);
+
+    vColor = aColor;
+    vWorldNormal = normalize(mat3(modelMatrix) * aNormal);
+    vWorldPosition = (modelMatrix * vec4(position, 1.0)).xyz;
+
+    gl_Position = projectionMatrix * mvPosition;
 }
 `;
 
@@ -59,11 +43,8 @@ const fragmentShader = `
 precision highp float;
 
 varying vec3 vColor;
-varying vec3 vNormal;
-varying vec2 vUv;
-varying float vPointSize;
-varying vec3 vViewPosition;
-varying float vDepth;
+varying vec3 vWorldNormal;
+varying vec3 vWorldPosition;
 
 uniform float uSigma;
 uniform float uAlphaThreshold;
@@ -74,35 +55,30 @@ uniform vec3 uLightColor;
 uniform vec3 uAmbientColor;
 
 void main() {
-    vec2 center = vUv - 0.5;
-    float dist = length(center) * 2.0;
-    
-    float sigma = uSigma;
-    float alpha = exp(-(dist * dist) / (2.0 * sigma * sigma));
-    
-    if (alpha < uAlphaThreshold) {
-        discard;
-    }
-    
+    vec2 uv = gl_PointCoord - 0.5;
+    float d = length(uv) * 2.0;
+
+    float alpha = exp(-(d * d) / (2.0 * uSigma * uSigma));
+
+    if (alpha < uAlphaThreshold) discard;
+
     vec3 baseColor = vColor;
-    if (uShowNormals) {
-        baseColor = vNormal * 0.5 + 0.5;
-    }
-    
-    vec3 normal = normalize(vNormal);
-    vec3 lightDir = normalize(uLightPosition - vViewPosition);
-    vec3 viewDir = normalize(-vViewPosition);
-    vec3 halfDir = normalize(lightDir + viewDir);
-    
-    float diff = max(dot(normal, lightDir), 0.0);
-    float spec = pow(max(dot(normal, halfDir), 0.0), 32.0);
-    
+    if (uShowNormals) baseColor = vWorldNormal * 0.5 + 0.5;
+
+    vec3 N = normalize(vWorldNormal);
+    vec3 L = normalize(uLightPosition - vWorldPosition);
+    vec3 V = normalize(cameraPosition - vWorldPosition);
+    vec3 H = normalize(L + V);
+
+    float diff = max(dot(N, L), 0.0);
+    float spec = pow(max(dot(N, H), 0.0), 48.0);
+
     vec3 ambient = uAmbientColor * baseColor;
     vec3 diffuse = uLightColor * baseColor * diff;
-    vec3 specular = uLightColor * spec * 0.3;
-    
+    vec3 specular = uLightColor * spec * 0.4;
+
     vec3 finalColor = (ambient + diffuse + specular) * uBrightness;
-    
+
     gl_FragColor = vec4(finalColor * alpha, alpha);
 }
 `;
@@ -113,26 +89,20 @@ export class PointCloudRenderer {
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
   private controls: OrbitControls;
-  private depthSorter: DepthSorter;
 
-  private pointCloud: THREE.Mesh | null = null;
-  private geometry: THREE.InstancedBufferGeometry | null = null;
+  private points: THREE.Points | null = null;
+  private geometry: THREE.BufferGeometry | null = null;
   private material: THREE.ShaderMaterial | null = null;
 
-  private positionBuffer: Float32Array;
-  private colorBuffer: Float32Array;
-  private normalBuffer: Float32Array;
-  private sizeBuffer: Float32Array;
+  private srcPosition: Float32Array;
+  private srcColor: Float32Array;
+  private srcNormal: Float32Array;
+  private srcSize: Float32Array;
 
-  private sortedPositionBuffer: Float32Array;
-  private sortedColorBuffer: Float32Array;
-  private sortedNormalBuffer: Float32Array;
-  private sortedSizeBuffer: Float32Array;
-
-  private gpuPositionAttr: THREE.InstancedBufferAttribute | null = null;
-  private gpuColorAttr: THREE.InstancedBufferAttribute | null = null;
-  private gpuNormalAttr: THREE.InstancedBufferAttribute | null = null;
-  private gpuSizeAttr: THREE.InstancedBufferAttribute | null = null;
+  private gpuPosition: Float32Array;
+  private gpuColor: Float32Array;
+  private gpuNormal: Float32Array;
+  private gpuSize: Float32Array;
 
   private pointCount = 0;
   private maxPoints = 5000000;
@@ -148,87 +118,88 @@ export class PointCloudRenderer {
   private currentRenderTime = 0;
   private currentDrawCalls = 0;
 
-  private cameraPositionArray = new Float32Array(3);
-  private viewMatrixArray = new Float32Array(16);
+  private sortDepthBuf: Float32Array;
+  private sortIndexBuf: Uint32Array;
+  private sortTempBuf: Uint32Array;
+  private sortCountBuf: Uint32Array;
+  private lastCameraPos = new THREE.Vector3();
+  private cameraMovedDist = 0;
+  private sortFrameCounter = 0;
+  private lastSortedIndices: Uint32Array | null = null;
 
-  private boundingBox: THREE.Box3 = new THREE.Box3();
+  private boundingBox = new THREE.Box3();
   private autoFitPending = false;
 
   constructor(container: HTMLElement, renderParams?: Partial<RenderParams>) {
     this.container = container;
     this.renderParams = { ...DEFAULT_RENDER_PARAMS, ...renderParams };
-    this.depthSorter = new DepthSorter();
 
-    this.positionBuffer = new Float32Array(this.maxPoints * 3);
-    this.colorBuffer = new Float32Array(this.maxPoints * 3);
-    this.normalBuffer = new Float32Array(this.maxPoints * 3);
-    this.sizeBuffer = new Float32Array(this.maxPoints);
+    this.srcPosition = new Float32Array(this.maxPoints * 3);
+    this.srcColor = new Float32Array(this.maxPoints * 3);
+    this.srcNormal = new Float32Array(this.maxPoints * 3);
+    this.srcSize = new Float32Array(this.maxPoints);
 
-    this.sortedPositionBuffer = new Float32Array(this.maxPoints * 3);
-    this.sortedColorBuffer = new Float32Array(this.maxPoints * 3);
-    this.sortedNormalBuffer = new Float32Array(this.maxPoints * 3);
-    this.sortedSizeBuffer = new Float32Array(this.maxPoints);
+    this.gpuPosition = new Float32Array(this.maxPoints * 3);
+    this.gpuColor = new Float32Array(this.maxPoints * 3);
+    this.gpuNormal = new Float32Array(this.maxPoints * 3);
+    this.gpuSize = new Float32Array(this.maxPoints);
+
+    this.sortDepthBuf = new Float32Array(this.maxPoints);
+    this.sortIndexBuf = new Uint32Array(this.maxPoints);
+    this.sortTempBuf = new Uint32Array(this.maxPoints);
+    this.sortCountBuf = new Uint32Array(256);
 
     this.renderer = this.createRenderer();
-    this.scene = this.createScene();
+    this.scene = new THREE.Scene();
+    this.scene.background = new THREE.Color(0x0a0e17);
     this.camera = this.createCamera();
     this.controls = this.createControls();
 
-    this.setupEventListeners();
-    this.createPointCloudGeometry();
-    this.createPointCloudMaterial();
-    this.createPointCloudMesh();
+    window.addEventListener('resize', this.handleResize);
+    this.createMaterial();
+    this.createGeometry();
   }
 
   private createRenderer(): THREE.WebGLRenderer {
-    const renderer = new THREE.WebGLRenderer({
+    const r = new THREE.WebGLRenderer({
       antialias: false,
       alpha: false,
       powerPreference: 'high-performance',
     });
-    renderer.setPixelRatio(1);
-    renderer.setSize(this.container.clientWidth, this.container.clientHeight);
-    renderer.setClearColor(0x0a0e17, 1);
+    r.setPixelRatio(1);
+    r.setSize(this.container.clientWidth, this.container.clientHeight);
+    r.setClearColor(0x0a0e17, 1);
 
-    const gl = renderer.getContext();
+    const gl = r.getContext();
     gl.enable(gl.BLEND);
     gl.blendFuncSeparate(gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
     gl.depthMask(false);
     gl.disable(gl.DEPTH_TEST);
 
-    this.container.appendChild(renderer.domElement);
-    return renderer;
-  }
-
-  private createScene(): THREE.Scene {
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0a0e17);
-    return scene;
+    this.container.appendChild(r.domElement);
+    return r;
   }
 
   private createCamera(): THREE.PerspectiveCamera {
-    const camera = new THREE.PerspectiveCamera(
+    const cam = new THREE.PerspectiveCamera(
       60,
       this.container.clientWidth / this.container.clientHeight,
       0.1,
       10000
     );
-    camera.position.set(0, 0, 10);
-    return camera;
+    cam.position.set(5, 4, 10);
+    cam.lookAt(0, 0, 0);
+    return cam;
   }
 
   private createControls(): OrbitControls {
-    const controls = new OrbitControls(this.camera, this.renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.05;
-    controls.minDistance = 0.1;
-    controls.maxDistance = 500;
-    controls.screenSpacePanning = true;
-    return controls;
-  }
-
-  private setupEventListeners(): void {
-    window.addEventListener('resize', this.handleResize);
+    const c = new OrbitControls(this.camera, this.renderer.domElement);
+    c.enableDamping = true;
+    c.dampingFactor = 0.08;
+    c.minDistance = 0.1;
+    c.maxDistance = 500;
+    c.screenSpacePanning = true;
+    return c;
   }
 
   private handleResize = (): void => {
@@ -240,20 +211,7 @@ export class PointCloudRenderer {
     }
   };
 
-  private createPointCloudGeometry(): void {
-    const geometry = new THREE.InstancedBufferGeometry();
-
-    const cornerVerts = new Float32Array([-1, -1, 1, -1, 1, 1, -1, -1, 1, 1, -1, 1]);
-    geometry.setAttribute('corner', new THREE.BufferAttribute(cornerVerts, 2));
-
-    const indices = new Uint16Array([0, 1, 2, 0, 2, 3]);
-    geometry.setIndex(new THREE.BufferAttribute(indices, 1));
-
-    geometry.instanceCount = 0;
-    this.geometry = geometry;
-  }
-
-  private createPointCloudMaterial(): void {
+  private createMaterial(): void {
     this.material = new THREE.ShaderMaterial({
       vertexShader,
       fragmentShader,
@@ -268,84 +226,61 @@ export class PointCloudRenderer {
       uniforms: {
         uPointScale: { value: this.renderParams.pointSize },
         uMinPointSize: { value: 1.0 },
-        uMaxPointSize: { value: 80.0 },
+        uMaxPointSize: { value: 512.0 },
         uViewportHeight: { value: this.container.clientHeight },
         uSigma: { value: this.renderParams.sigma },
         uAlphaThreshold: { value: this.renderParams.alphaThreshold },
         uBrightness: { value: this.renderParams.brightness },
         uShowNormals: { value: this.renderParams.showNormals },
-        uLightPosition: { value: new THREE.Vector3(5, 5, 10) },
-        uLightColor: { value: new THREE.Color(0xffffff) },
-        uAmbientColor: { value: new THREE.Color(0x444444) },
+        uLightPosition: { value: new THREE.Vector3(5, 8, 12) },
+        uLightColor: { value: new THREE.Color(1.0, 0.98, 0.95) },
+        uAmbientColor: { value: new THREE.Color(0.55, 0.55, 0.6) },
       },
     });
   }
 
-  private createPointCloudMesh(): void {
-    if (!this.geometry || !this.material) return;
-    this.pointCloud = new THREE.Mesh(this.geometry, this.material);
-    this.pointCloud.frustumCulled = false;
-    this.scene.add(this.pointCloud);
+  private createGeometry(): void {
+    this.geometry = new THREE.BufferGeometry();
+    const placeholder = new THREE.BufferAttribute(new Float32Array(3), 3);
+    placeholder.setUsage(THREE.DynamicDrawUsage);
+    this.geometry.setAttribute('position', placeholder);
+    this.geometry.setAttribute('aColor', new THREE.BufferAttribute(new Float32Array(3), 3));
+    this.geometry.setAttribute('aNormal', new THREE.BufferAttribute(new Float32Array(3), 3));
+    this.geometry.setAttribute('aPointSize', new THREE.BufferAttribute(new Float32Array(1), 1));
+    this.geometry.setDrawRange(0, 0);
+
+    this.points = new THREE.Points(this.geometry, this.material!);
+    this.points.frustumCulled = false;
+    this.scene.add(this.points);
   }
 
-  private ensureGPUAttributes(): void {
-    if (!this.geometry || this.pointCount === 0) return;
+  private ensureGPUBuffers(): void {
+    if (this.pointCount <= this.gpuAllocated) return;
 
-    const needsRealloc = this.pointCount > this.gpuAllocated;
+    this.gpuAllocated = Math.max(this.pointCount, Math.min(this.pointCount * 2, this.maxPoints));
 
-    if (needsRealloc) {
-      this.gpuAllocated = Math.max(this.pointCount, Math.min(this.pointCount * 2, this.maxPoints));
+    const posAttr = new THREE.BufferAttribute(new Float32Array(this.gpuAllocated * 3), 3);
+    posAttr.setUsage(THREE.DynamicDrawUsage);
+    this.geometry!.setAttribute('position', posAttr);
 
-      this.gpuPositionAttr = new THREE.InstancedBufferAttribute(
-        new Float32Array(this.gpuAllocated * 3), 3
-      );
-      this.gpuColorAttr = new THREE.InstancedBufferAttribute(
-        new Float32Array(this.gpuAllocated * 3), 3
-      );
-      this.gpuNormalAttr = new THREE.InstancedBufferAttribute(
-        new Float32Array(this.gpuAllocated * 3), 3
-      );
-      this.gpuSizeAttr = new THREE.InstancedBufferAttribute(
-        new Float32Array(this.gpuAllocated), 1
-      );
+    const colAttr = new THREE.BufferAttribute(new Float32Array(this.gpuAllocated * 3), 3);
+    colAttr.setUsage(THREE.DynamicDrawUsage);
+    this.geometry!.setAttribute('aColor', colAttr);
 
-      this.geometry.setAttribute('instancePosition', this.gpuPositionAttr);
-      this.geometry.setAttribute('instanceColor', this.gpuColorAttr);
-      this.geometry.setAttribute('instanceNormal', this.gpuNormalAttr);
-      this.geometry.setAttribute('instanceSize', this.gpuSizeAttr);
-    }
+    const normAttr = new THREE.BufferAttribute(new Float32Array(this.gpuAllocated * 3), 3);
+    normAttr.setUsage(THREE.DynamicDrawUsage);
+    this.geometry!.setAttribute('aNormal', normAttr);
 
-    this.geometry.instanceCount = this.pointCount;
+    const sizeAttr = new THREE.BufferAttribute(new Float32Array(this.gpuAllocated), 1);
+    sizeAttr.setUsage(THREE.DynamicDrawUsage);
+    this.geometry!.setAttribute('aPointSize', sizeAttr);
   }
 
   public setPointData(data: Float32Array, pointCount: number): void {
-    if (pointCount > this.maxPoints) {
-      console.warn(`Point count ${pointCount} exceeds max ${this.maxPoints}, truncating`);
-      pointCount = this.maxPoints;
-    }
-
+    if (pointCount > this.maxPoints) pointCount = this.maxPoints;
     this.pointCount = pointCount;
-
-    for (let i = 0; i < pointCount; i++) {
-      const srcOffset = i * POINT_STRIDE;
-      const posOffset = i * 3;
-
-      this.positionBuffer[posOffset] = data[srcOffset];
-      this.positionBuffer[posOffset + 1] = data[srcOffset + 1];
-      this.positionBuffer[posOffset + 2] = data[srcOffset + 2];
-
-      this.colorBuffer[posOffset] = data[srcOffset + 3];
-      this.colorBuffer[posOffset + 1] = data[srcOffset + 4];
-      this.colorBuffer[posOffset + 2] = data[srcOffset + 5];
-
-      this.normalBuffer[posOffset] = data[srcOffset + 6];
-      this.normalBuffer[posOffset + 1] = data[srcOffset + 7];
-      this.normalBuffer[posOffset + 2] = data[srcOffset + 8];
-
-      this.sizeBuffer[i] = data[srcOffset + 9];
-    }
-
-    this.copyToSorted(null);
+    this.deinterleave(data, pointCount);
+    this.applySort(null);
     this.uploadToGPU();
     this.updateBoundingBox();
     this.autoFitPending = true;
@@ -353,111 +288,219 @@ export class PointCloudRenderer {
 
   public appendPointData(data: Float32Array, chunkPointCount: number): void {
     const newCount = Math.min(this.pointCount + chunkPointCount, this.maxPoints);
-    const actualChunk = newCount - this.pointCount;
+    const actual = newCount - this.pointCount;
+    if (actual <= 0) return;
 
-    if (actualChunk <= 0) return;
-
-    for (let i = 0; i < actualChunk; i++) {
-      const srcOffset = i * POINT_STRIDE;
-      const dstIdx = this.pointCount + i;
-      const posOffset = dstIdx * 3;
-
-      this.positionBuffer[posOffset] = data[srcOffset];
-      this.positionBuffer[posOffset + 1] = data[srcOffset + 1];
-      this.positionBuffer[posOffset + 2] = data[srcOffset + 2];
-
-      this.colorBuffer[posOffset] = data[srcOffset + 3];
-      this.colorBuffer[posOffset + 1] = data[srcOffset + 4];
-      this.colorBuffer[posOffset + 2] = data[srcOffset + 5];
-
-      this.normalBuffer[posOffset] = data[srcOffset + 6];
-      this.normalBuffer[posOffset + 1] = data[srcOffset + 7];
-      this.normalBuffer[posOffset + 2] = data[srcOffset + 8];
-
-      this.sizeBuffer[dstIdx] = data[srcOffset + 9];
+    const base = this.pointCount;
+    for (let i = 0; i < actual; i++) {
+      const s = i * POINT_STRIDE;
+      const p = (base + i) * 3;
+      this.srcPosition[p] = data[s];
+      this.srcPosition[p + 1] = data[s + 1];
+      this.srcPosition[p + 2] = data[s + 2];
+      this.srcColor[p] = data[s + 3];
+      this.srcColor[p + 1] = data[s + 4];
+      this.srcColor[p + 2] = data[s + 5];
+      this.srcNormal[p] = data[s + 6];
+      this.srcNormal[p + 1] = data[s + 7];
+      this.srcNormal[p + 2] = data[s + 8];
+      this.srcSize[base + i] = data[s + 9];
     }
 
     this.pointCount = newCount;
-    this.copyToSorted(null);
+
+    this.gpuPosition.set(this.srcPosition.subarray(0, newCount * 3));
+    this.gpuColor.set(this.srcColor.subarray(0, newCount * 3));
+    this.gpuNormal.set(this.srcNormal.subarray(0, newCount * 3));
+    this.gpuSize.set(this.srcSize.subarray(0, newCount));
     this.uploadToGPU();
-    this.updateBoundingBox();
   }
 
-  private copyToSorted(sortedIndices: Uint32Array | null): void {
-    if (sortedIndices === null || sortedIndices.length !== this.pointCount) {
-      this.sortedPositionBuffer.set(this.positionBuffer.subarray(0, this.pointCount * 3));
-      this.sortedColorBuffer.set(this.colorBuffer.subarray(0, this.pointCount * 3));
-      this.sortedNormalBuffer.set(this.normalBuffer.subarray(0, this.pointCount * 3));
-      this.sortedSizeBuffer.set(this.sizeBuffer.subarray(0, this.pointCount));
+  public finalizeLoad(): void {
+    this.updateBoundingBox();
+    this.autoFitPending = true;
+    if (this.renderParams.sortEnabled && this.pointCount > 0) {
+      this.computeDepth();
+      this.radixSort();
+      this.applySort(this.lastSortedIndices!);
+      this.uploadToGPU();
+    }
+  }
+
+  private deinterleave(data: Float32Array, count: number): void {
+    for (let i = 0; i < count; i++) {
+      const s = i * POINT_STRIDE;
+      const p = i * 3;
+      this.srcPosition[p] = data[s];
+      this.srcPosition[p + 1] = data[s + 1];
+      this.srcPosition[p + 2] = data[s + 2];
+      this.srcColor[p] = data[s + 3];
+      this.srcColor[p + 1] = data[s + 4];
+      this.srcColor[p + 2] = data[s + 5];
+      this.srcNormal[p] = data[s + 6];
+      this.srcNormal[p + 1] = data[s + 7];
+      this.srcNormal[p + 2] = data[s + 8];
+      this.srcSize[i] = data[s + 9];
+    }
+  }
+
+  private applySort(indices: Uint32Array | null): void {
+    const n = this.pointCount;
+    if (indices === null || indices.length !== n) {
+      this.gpuPosition.set(this.srcPosition.subarray(0, n * 3));
+      this.gpuColor.set(this.srcColor.subarray(0, n * 3));
+      this.gpuNormal.set(this.srcNormal.subarray(0, n * 3));
+      this.gpuSize.set(this.srcSize.subarray(0, n));
     } else {
-      for (let i = 0; i < this.pointCount; i++) {
-        const srcIdx = sortedIndices[i];
-        const srcPos = srcIdx * 3;
-        const dstPos = i * 3;
-
-        this.sortedPositionBuffer[dstPos] = this.positionBuffer[srcPos];
-        this.sortedPositionBuffer[dstPos + 1] = this.positionBuffer[srcPos + 1];
-        this.sortedPositionBuffer[dstPos + 2] = this.positionBuffer[srcPos + 2];
-
-        this.sortedColorBuffer[dstPos] = this.colorBuffer[srcPos];
-        this.sortedColorBuffer[dstPos + 1] = this.colorBuffer[srcPos + 1];
-        this.sortedColorBuffer[dstPos + 2] = this.colorBuffer[srcPos + 2];
-
-        this.sortedNormalBuffer[dstPos] = this.normalBuffer[srcPos];
-        this.sortedNormalBuffer[dstPos + 1] = this.normalBuffer[srcPos + 1];
-        this.sortedNormalBuffer[dstPos + 2] = this.normalBuffer[srcPos + 2];
-
-        this.sortedSizeBuffer[i] = this.sizeBuffer[srcIdx];
+      for (let i = 0; i < n; i++) {
+        const src = indices[i];
+        const sp = src * 3;
+        const dp = i * 3;
+        this.gpuPosition[dp] = this.srcPosition[sp];
+        this.gpuPosition[dp + 1] = this.srcPosition[sp + 1];
+        this.gpuPosition[dp + 2] = this.srcPosition[sp + 2];
+        this.gpuColor[dp] = this.srcColor[sp];
+        this.gpuColor[dp + 1] = this.srcColor[sp + 1];
+        this.gpuColor[dp + 2] = this.srcColor[sp + 2];
+        this.gpuNormal[dp] = this.srcNormal[sp];
+        this.gpuNormal[dp + 1] = this.srcNormal[sp + 1];
+        this.gpuNormal[dp + 2] = this.srcNormal[sp + 2];
+        this.gpuSize[i] = this.srcSize[src];
       }
     }
   }
 
   private uploadToGPU(): void {
-    this.ensureGPUAttributes();
+    this.ensureGPUBuffers();
+    const n = this.pointCount;
 
-    if (!this.gpuPositionAttr) return;
+    const posAttr = this.geometry!.getAttribute('position') as THREE.BufferAttribute;
+    const colAttr = this.geometry!.getAttribute('aColor') as THREE.BufferAttribute;
+    const normAttr = this.geometry!.getAttribute('aNormal') as THREE.BufferAttribute;
+    const sizeAttr = this.geometry!.getAttribute('aPointSize') as THREE.BufferAttribute;
 
-    this.gpuPositionAttr.array.set(this.sortedPositionBuffer.subarray(0, this.pointCount * 3));
-    this.gpuColorAttr!.array.set(this.sortedColorBuffer.subarray(0, this.pointCount * 3));
-    this.gpuNormalAttr!.array.set(this.sortedNormalBuffer.subarray(0, this.pointCount * 3));
-    this.gpuSizeAttr!.array.set(this.sortedSizeBuffer.subarray(0, this.pointCount));
+    posAttr.array.set(this.gpuPosition.subarray(0, n * 3));
+    colAttr.array.set(this.gpuColor.subarray(0, n * 3));
+    normAttr.array.set(this.gpuNormal.subarray(0, n * 3));
+    sizeAttr.array.set(this.gpuSize.subarray(0, n));
 
-    this.gpuPositionAttr.needsUpdate = true;
-    this.gpuColorAttr!.needsUpdate = true;
-    this.gpuNormalAttr!.needsUpdate = true;
-    this.gpuSizeAttr!.needsUpdate = true;
+    posAttr.needsUpdate = true;
+    colAttr.needsUpdate = true;
+    normAttr.needsUpdate = true;
+    sizeAttr.needsUpdate = true;
+
+    this.geometry!.setDrawRange(0, n);
+  }
+
+  private computeDepth(): void {
+    this.camera.updateMatrixWorld();
+    const e = this.camera.matrixWorldInverse.elements;
+    const m20 = e[8], m21 = e[9], m22 = e[10], m23 = e[11];
+    const pos = this.srcPosition;
+    const n = this.pointCount;
+    const depths = this.sortDepthBuf;
+    for (let i = 0; i < n; i++) {
+      const p = i * 3;
+      depths[i] = m20 * pos[p] + m21 * pos[p + 1] + m22 * pos[p + 2] + m23;
+    }
+  }
+
+  private radixSort(): void {
+    const n = this.pointCount;
+    const depths = this.sortDepthBuf;
+    const indices = this.sortIndexBuf;
+    const temp = this.sortTempBuf;
+    const count = this.sortCountBuf;
+    const fv = new Float32Array(1);
+    const iv = new Uint32Array(fv.buffer);
+
+    for (let i = 0; i < n; i++) indices[i] = i;
+
+    for (let shift = 0; shift < 32; shift += 8) {
+      count.fill(0);
+      for (let i = 0; i < n; i++) {
+        fv[0] = depths[indices[i]];
+        let k = iv[0];
+        k = (k ^ ((k >> 31) | 0x80000000)) >>> shift;
+        count[k & 0xff]++;
+      }
+      let prefix = 0;
+      for (let i = 0; i < 256; i++) {
+        const c = count[i];
+        count[i] = prefix;
+        prefix += c;
+      }
+      for (let i = 0; i < n; i++) {
+        fv[0] = depths[indices[i]];
+        let k = iv[0];
+        k = (k ^ ((k >> 31) | 0x80000000)) >>> shift;
+        temp[count[k & 0xff]++] = indices[i];
+      }
+      indices.set(temp.subarray(0, n));
+    }
+
+    this.lastSortedIndices = indices.subarray(0, n);
+  }
+
+  private performDepthSort(): void {
+    if (this.pointCount === 0 || !this.renderParams.sortEnabled) return;
+
+    this.sortFrameCounter++;
+
+    const moved = this.camera.position.distanceTo(this.lastCameraPos);
+    this.cameraMovedDist += moved;
+    this.lastCameraPos.copy(this.camera.position);
+
+    const sortInterval = this.renderParams.sortInterval || 3;
+    const moveThreshold = this.boundingBox.isEmpty() ? 0.01 :
+      this.boundingBox.getSize(new THREE.Vector3()).length() * 0.003;
+
+    if (this.sortFrameCounter % sortInterval !== 0 && this.cameraMovedDist < moveThreshold) {
+      return;
+    }
+
+    this.cameraMovedDist = 0;
+    const t0 = performance.now();
+
+    this.computeDepth();
+    this.radixSort();
+    this.applySort(this.lastSortedIndices!);
+    this.uploadToGPU();
+
+    this.currentSortTime = performance.now() - t0;
   }
 
   private updateBoundingBox(): void {
-    this.boundingBox.makeEmpty();
+    let minX = Infinity, minY = Infinity, minZ = Infinity;
+    let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+    const pos = this.srcPosition;
     for (let i = 0; i < this.pointCount; i++) {
-      const offset = i * 3;
-      this.boundingBox.expandByPoint(
-        new THREE.Vector3(
-          this.positionBuffer[offset],
-          this.positionBuffer[offset + 1],
-          this.positionBuffer[offset + 2]
-        )
-      );
+      const p = i * 3;
+      const x = pos[p], y = pos[p + 1], z = pos[p + 2];
+      if (x < minX) minX = x;
+      if (y < minY) minY = y;
+      if (z < minZ) minZ = z;
+      if (x > maxX) maxX = x;
+      if (y > maxY) maxY = y;
+      if (z > maxZ) maxZ = z;
     }
+    this.boundingBox.min.set(minX, minY, minZ);
+    this.boundingBox.max.set(maxX, maxY, maxZ);
   }
 
   public updateRenderParams(params: Partial<RenderParams>): void {
     this.renderParams = { ...this.renderParams, ...params };
-
-    if (this.material) {
-      if (params.pointSize !== undefined) this.material.uniforms.uPointScale.value = params.pointSize;
-      if (params.sigma !== undefined) this.material.uniforms.uSigma.value = params.sigma;
-      if (params.alphaThreshold !== undefined) this.material.uniforms.uAlphaThreshold.value = params.alphaThreshold;
-      if (params.brightness !== undefined) this.material.uniforms.uBrightness.value = params.brightness;
-      if (params.showNormals !== undefined) this.material.uniforms.uShowNormals.value = params.showNormals;
-      if (params.sortInterval !== undefined) this.depthSorter.setSortInterval(params.sortInterval);
-      if (params.sortEnabled !== undefined) this.depthSorter.setEnabled(params.sortEnabled);
-    }
+    if (!this.material) return;
+    const u = this.material.uniforms;
+    if (params.pointSize !== undefined) u.uPointScale.value = params.pointSize;
+    if (params.sigma !== undefined) u.uSigma.value = params.sigma;
+    if (params.alphaThreshold !== undefined) u.uAlphaThreshold.value = params.alphaThreshold;
+    if (params.brightness !== undefined) u.uBrightness.value = params.brightness;
+    if (params.showNormals !== undefined) u.uShowNormals.value = params.showNormals;
   }
 
-  public setOnMetricsUpdate(callback: (metrics: PerformanceMetrics) => void): void {
-    this.onMetricsUpdate = callback;
+  public setOnMetricsUpdate(cb: (m: PerformanceMetrics) => void): void {
+    this.onMetricsUpdate = cb;
   }
 
   public start(): void {
@@ -465,11 +508,9 @@ export class PointCloudRenderer {
 
     const animate = (time: number): void => {
       this.animationFrameId = requestAnimationFrame(animate);
-
-      const deltaTime = time - this.lastFrameTime;
+      const dt = time - this.lastFrameTime;
       this.lastFrameTime = time;
-
-      this.frameTimes.push(deltaTime);
+      this.frameTimes.push(dt);
       if (this.frameTimes.length > 30) this.frameTimes.shift();
 
       this.controls.update();
@@ -479,13 +520,11 @@ export class PointCloudRenderer {
         this.autoFitPending = false;
       }
 
-      if (this.pointCount > 0 && this.renderParams.sortEnabled) {
-        this.performDepthSort();
-      }
+      this.performDepthSort();
 
-      const renderStart = performance.now();
+      const t0 = performance.now();
       this.renderer.render(this.scene, this.camera);
-      this.currentRenderTime = performance.now() - renderStart;
+      this.currentRenderTime = performance.now() - t0;
       this.currentDrawCalls = this.renderer.info.render.calls;
 
       this.updateMetrics();
@@ -501,97 +540,53 @@ export class PointCloudRenderer {
     }
   }
 
-  private performDepthSort(): void {
-    if (this.pointCount === 0) return;
-
-    this.camera.updateMatrixWorld();
-    this.camera.matrixWorldInverse.copy(this.camera.matrixWorld).invert();
-
-    this.cameraPositionArray[0] = this.camera.position.x;
-    this.cameraPositionArray[1] = this.camera.position.y;
-    this.cameraPositionArray[2] = this.camera.position.z;
-
-    this.viewMatrixArray.set(this.camera.matrixWorldInverse.elements);
-
-    const result: SortResult = this.depthSorter.requestSort(
-      this.positionBuffer,
-      this.viewMatrixArray,
-      this.cameraPositionArray,
-      this.pointCount,
-      3
-    );
-
-    if (result.sortTime > 0) {
-      this.currentSortTime = result.sortTime;
-    }
-
-    if (result.sortedIndices && !result.pending) {
-      this.copyToSorted(result.sortedIndices);
-      this.uploadToGPU();
-    }
-  }
-
   private fitCameraToBoundingBox(): void {
     if (this.boundingBox.isEmpty()) return;
-
     const center = new THREE.Vector3();
-    this.boundingBox.getCenter(center);
-
     const size = new THREE.Vector3();
+    this.boundingBox.getCenter(center);
     this.boundingBox.getSize(size);
 
     const maxDim = Math.max(size.x, size.y, size.z);
     const fov = (this.camera.fov * Math.PI) / 180;
-    const distance = (maxDim / 2) / Math.tan(fov / 2) * 2.5;
+    const dist = (maxDim / 2) / Math.tan(fov / 2) * 2.2;
 
-    const direction = new THREE.Vector3(0.3, 0.5, 1).normalize();
-    const newPosition = center.clone().add(direction.multiplyScalar(distance));
-
-    this.camera.position.copy(newPosition);
+    const dir = new THREE.Vector3(0.3, 0.4, 1).normalize();
+    this.camera.position.copy(center).add(dir.multiplyScalar(dist));
     this.controls.target.copy(center);
     this.controls.update();
+    this.lastCameraPos.copy(this.camera.position);
   }
 
   private updateMetrics(): void {
     if (!this.onMetricsUpdate) return;
-
-    const avgFrameTime = this.frameTimes.length > 0
+    const avg = this.frameTimes.length > 0
       ? this.frameTimes.reduce((a, b) => a + b, 0) / this.frameTimes.length
       : 16;
-    const fps = 1000 / Math.max(avgFrameTime, 1);
-
-    const gpuMemoryMB = this.pointCount * (40 + 24) / (1024 * 1024);
-
+    const mb = this.pointCount * 40 / (1024 * 1024);
     this.onMetricsUpdate({
-      fps: Math.round(fps),
-      frameTime: avgFrameTime,
+      fps: Math.round(1000 / Math.max(avg, 1)),
+      frameTime: avg,
       pointCount: this.pointCount,
       visiblePoints: this.pointCount,
-      gpuMemoryMB,
+      gpuMemoryMB: mb,
       sortTime: this.currentSortTime,
       renderTime: this.currentRenderTime,
       drawCalls: this.currentDrawCalls,
     });
   }
 
-  public getPointCount(): number {
-    return this.pointCount;
-  }
+  public getPointCount(): number { return this.pointCount; }
 
   public dispose(): void {
     this.stop();
-    this.depthSorter.dispose();
     window.removeEventListener('resize', this.handleResize);
-
-    if (this.pointCloud) {
-      this.scene.remove(this.pointCloud);
-      this.pointCloud.geometry.dispose();
-      (this.pointCloud.material as THREE.Material).dispose();
+    if (this.points) {
+      this.scene.remove(this.points);
+      this.geometry?.dispose();
+      this.material?.dispose();
     }
-
     this.renderer.dispose();
-    if (this.renderer.domElement.parentNode) {
-      this.renderer.domElement.parentNode.removeChild(this.renderer.domElement);
-    }
+    this.renderer.domElement.parentNode?.removeChild(this.renderer.domElement);
   }
 }

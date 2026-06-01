@@ -41,10 +41,15 @@ app.get('*', (req: Request, res: Response): void => {
 })
 
 app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
-  res.status(500).json({
-    success: false,
-    error: 'Server internal error',
-  })
+  console.error('Unhandled error:', error);
+  if (!res.headersSent) {
+    res.status(500).json({
+      success: false,
+      error: 'Server internal error',
+    })
+  } else {
+    try { res.end() } catch {}
+  }
 })
 
 app.use((req: Request, res: Response) => {
