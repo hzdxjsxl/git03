@@ -13,6 +13,17 @@ export interface HistoryEntry {
   bestDistance: number;
 }
 
+export interface LiveRankingEntry {
+  rank: number;
+  genomeId: string;
+  distance: number;
+  score: number;
+  maxHeight: number;
+  isStuck: boolean;
+  wheelCount: number;
+  color: string;
+}
+
 interface SimStore {
   phase: SimPhase;
   generation: number;
@@ -27,6 +38,11 @@ interface SimStore {
   terrainSeed: number;
   selectedCarId: string | null;
 
+  liveBestDistance: number;
+  liveAvgDistance: number;
+  liveBestScore: number;
+  liveRankings: LiveRankingEntry[];
+
   setPhase: (phase: SimPhase) => void;
   setConfig: (config: Partial<EvolutionConfig>) => void;
   initPopulation: () => void;
@@ -36,6 +52,7 @@ interface SimStore {
   runEvolution: () => void;
   selectCar: (id: string | null) => void;
   reset: () => void;
+  resetLiveStats: () => void;
 }
 
 export const useSimStore = create<SimStore>((set, get) => ({
@@ -51,6 +68,11 @@ export const useSimStore = create<SimStore>((set, get) => ({
   carStates: new Map(),
   terrainSeed: Math.random() * 1000,
   selectedCarId: null,
+
+  liveBestDistance: 0,
+  liveAvgDistance: 0,
+  liveBestScore: 0,
+  liveRankings: [],
 
   setPhase: (phase) => set({ phase }),
 
@@ -70,6 +92,10 @@ export const useSimStore = create<SimStore>((set, get) => ({
       elapsed: 0,
       carStates: new Map(),
       phase: 'idle',
+      liveBestDistance: 0,
+      liveAvgDistance: 0,
+      liveBestScore: 0,
+      liveRankings: [],
     });
   },
 
@@ -97,10 +123,66 @@ export const useSimStore = create<SimStore>((set, get) => ({
           bestDistance,
         },
       ],
+      liveBestDistance: bestDistance,
+      liveBestScore: bestScore,
     }));
   },
 
-  setCarStates: (carStates) => set({ carStates }),
+  setCarStates: (carStates) => {
+    const { genomes, liveBestDistance: prevBest } = get();
+    const genomeMap = new Map(genomes.map((g) => [g.id, g]));
+
+    let bestDist = 0;
+    let totalDist = 0;
+    let count = 0;
+    let maxScore = 0;
+
+    const rankings: LiveRankingEntry[] = [];
+
+    for (const [id, state] of carStates) {
+      const genome = genomeMap.get(id);
+      if (!genome) continue;
+
+      const distance = Math.max(0, state.x - state.startX);
+      const maxHeight = Math.max(0, state.startY - state.y);
+      const score = distance + maxHeight * 0.3;
+
+      if (distance > bestDist) bestDist = distance;
+      if (score > maxScore) maxScore = score;
+      totalDist += distance;
+      count++;
+
+      rankings.push({
+        rank: 0,
+        genomeId: id,
+        distance,
+        score,
+        maxHeight,
+        isStuck: state.isStuck,
+        wheelCount: genome.wheels.length,
+        color: genome.color,
+      });
+    }
+
+    if (Math.abs(bestDist - prevBest) < 1 && count > 0) {
+      set({ carStates });
+      return;
+    }
+
+    rankings.sort((a, b) => b.score - a.score);
+    rankings.forEach((r, i) => (r.rank = i + 1));
+
+    const top5 = rankings.slice(0, 5);
+    const avgDist = count > 0 ? totalDist / count : 0;
+
+    set({
+      carStates,
+      liveBestDistance: bestDist,
+      liveAvgDistance: avgDist,
+      liveBestScore: maxScore,
+      liveRankings: top5,
+    });
+  },
 
   setElapsed: (ms) => set({ elapsed: ms }),
 
@@ -117,6 +199,10 @@ export const useSimStore = create<SimStore>((set, get) => ({
       elapsed: 0,
       carStates: new Map(),
       phase: 'evolving',
+      liveBestDistance: 0,
+      liveAvgDistance: 0,
+      liveBestScore: 0,
+      liveRankings: [],
     });
   },
 
@@ -135,6 +221,19 @@ export const useSimStore = create<SimStore>((set, get) => ({
       carStates: new Map(),
       terrainSeed: Math.random() * 1000,
       selectedCarId: null,
+      liveBestDistance: 0,
+      liveAvgDistance: 0,
+      liveBestScore: 0,
+      liveRankings: [],
+    });
+  },
+
+  resetLiveStats: () => {
+    set({
+      liveBestDistance: 0,
+      liveAvgDistance: 0,
+      liveBestScore: 0,
+      liveRankings: [],
     });
   },
 }));

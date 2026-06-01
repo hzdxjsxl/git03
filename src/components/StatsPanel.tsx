@@ -1,11 +1,27 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useMemo } from 'react';
 import { useSimStore } from '../store/simStore';
 import { rankByFitness } from '../genetics';
+import type { LiveRankingEntry } from '../store/simStore';
 
 export default function StatsPanel() {
-  const { history, fitnessResults, generation, bestScore } = useSimStore();
+  const {
+    history,
+    fitnessResults,
+    generation,
+    bestScore,
+    liveBestDistance,
+    liveAvgDistance,
+    liveBestScore,
+    liveRankings,
+    phase,
+    elapsed,
+  } = useSimStore();
+
   const lineChartRef = useRef<HTMLCanvasElement>(null);
   const barChartRef = useRef<HTMLCanvasElement>(null);
+  const rankingRef = useRef<HTMLDivElement>(null);
+
+  const formatNum = (n: number) => (n > 0 ? n.toFixed(0) : '0');
 
   useEffect(() => {
     const canvas = lineChartRef.current;
@@ -152,45 +168,74 @@ export default function StatsPanel() {
     }
   }, [fitnessResults]);
 
+  const secDisplay = useMemo(
+    () => (elapsed > 0 ? (elapsed / 1000).toFixed(1) : '0.0'),
+    [elapsed]
+  );
+
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-2">
       <h2 className="text-sm font-semibold tracking-wider uppercase text-[#ff6b35] font-display">
-        Statistics
+        TELEMETRY
       </h2>
 
-      <div className="card p-3 space-y-1">
+      <div className="card p-2 space-y-0.5">
         <div className="flex items-center justify-between">
-          <span className="text-xs text-[#94a3b8] font-mono">ALL-TIME BEST</span>
+          <span className="text-[9px] text-[#64748b] font-mono">GEN</span>
+          <span className="text-[10px] text-[#94a3b8] font-mono flex items-center gap-2">
+            <span className="text-[#00e5a0]">#{generation}</span>
+            <span className="text-[#38bdf8]">{secDisplay}s</span>
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${
+                phase === 'running'
+                  ? 'bg-[#00e5a0] animate-pulse'
+                  : phase === 'paused'
+                  ? 'bg-[#ff6b35]'
+                  : 'bg-[#64748b]'
+              }`}
+            ></span>
+          </span>
+        </div>
+      </div>
+
+      <div className="card p-2 space-y-1">
+        <div className="flex items-center justify-between">
+          <span className="text-[9px] text-[#64748b] font-mono">LIVE LEAD</span>
           <span className="text-sm font-bold text-[#00e5a0] font-mono">
-            {bestScore.toFixed(0)}
+            {formatNum(liveBestDistance)}px
           </span>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-xs text-[#94a3b8] font-mono">GEN BEST</span>
-          <span className="text-sm font-bold text-[#ff6b35] font-mono">
-            {history.length > 0
-              ? history[history.length - 1].bestScore.toFixed(0)
-              : '-'}
-          </span>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-[#94a3b8] font-mono">GEN AVG</span>
+          <span className="text-[9px] text-[#64748b] font-mono">LIVE AVG</span>
           <span className="text-sm font-bold text-[#38bdf8] font-mono">
-            {history.length > 0
-              ? history[history.length - 1].avgScore.toFixed(0)
-              : '-'}
+            {formatNum(liveAvgDistance)}px
+          </span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-[9px] text-[#64748b] font-mono">LIVE SCORE</span>
+          <span className="text-sm font-bold text-[#ff6b35] font-mono">
+            {formatNum(liveBestScore)}
+          </span>
+        </div>
+        <div className="h-px bg-[#2d3a52] my-1"></div>
+        <div className="flex items-center justify-between">
+          <span className="text-[9px] text-[#64748b] font-mono">ALL-TIME BEST</span>
+          <span className="text-sm font-bold text-[#00e5a0] font-mono">
+            {formatNum(bestScore)}
           </span>
         </div>
       </div>
 
       <div className="card p-2">
-        <div className="flex items-center justify-between mb-1 px-1">
-          <span className="text-[10px] text-[#64748b] font-mono">FITNESS HISTORY</span>
+        <div className="flex items-center justify-between mb-1 px-0.5">
+          <span className="text-[9px] text-[#64748b] font-mono tracking-wider">
+            FITNESS HISTORY
+          </span>
           <div className="flex gap-2">
-            <span className="flex items-center gap-1 text-[9px] text-[#00e5a0] font-mono">
+            <span className="flex items-center gap-1 text-[8px] text-[#00e5a0] font-mono">
               <span className="inline-block w-2 h-0.5 bg-[#00e5a0]"></span>BEST
             </span>
-            <span className="flex items-center gap-1 text-[9px] text-[#38bdf8] font-mono">
+            <span className="flex items-center gap-1 text-[8px] text-[#38bdf8] font-mono">
               <span className="inline-block w-2 h-0.5 bg-[#38bdf8]"></span>AVG
             </span>
           </div>
@@ -198,19 +243,115 @@ export default function StatsPanel() {
         <canvas
           ref={lineChartRef}
           className="w-full"
-          style={{ height: '100px' }}
+          style={{ height: '90px' }}
         />
       </div>
 
       <div className="card p-2">
-        <div className="flex items-center justify-between mb-1 px-1">
-          <span className="text-[10px] text-[#64748b] font-mono">GEN {generation} RANKING</span>
+        <div className="flex items-center justify-between mb-1 px-0.5">
+          <span className="text-[9px] text-[#64748b] font-mono tracking-wider">
+            FINAL RANKING
+          </span>
+          <span className="text-[8px] text-[#ff6b35] font-mono">
+            GEN {Math.max(1, generation)}
+          </span>
         </div>
         <canvas
           ref={barChartRef}
           className="w-full"
-          style={{ height: '60px' }}
+          style={{ height: '45px' }}
         />
+      </div>
+
+      <div className="card p-2" ref={rankingRef}>
+        <div className="flex items-center justify-between mb-1.5 px-0.5">
+          <span className="text-[9px] text-[#64748b] font-mono tracking-wider">
+            LIVE TOP 5
+          </span>
+          <span
+            className={`text-[8px] font-mono ${
+              phase === 'running'
+                ? 'text-[#00e5a0] animate-pulse'
+                : 'text-[#64748b]'
+            }`}
+          >
+            {phase === 'running' ? 'UPDATING' : 'IDLE'}
+          </span>
+        </div>
+        <div className="space-y-1">
+          {liveRankings.length === 0 ? (
+            <div className="text-center py-2">
+              <span className="text-[9px] text-[#64748b] font-mono">
+                WAITING FOR RACE START...
+              </span>
+            </div>
+          ) : (
+            liveRankings.map((entry) => (
+              <RankingRow key={entry.genomeId} entry={entry} />
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RankingRow({ entry }: { entry: LiveRankingEntry }) {
+  const { selectCar, selectedCarId } = useSimStore();
+  const isSelected = selectedCarId === entry.genomeId;
+
+  return (
+    <div
+      onClick={() => selectCar(entry.genomeId)}
+      className={`flex items-center gap-1.5 py-1 px-1.5 rounded cursor-pointer transition-colors ${
+        isSelected
+          ? 'bg-[#1f2b42] border border-[#00e5a066]'
+          : 'hover:bg-[#1a2235] border border-transparent'
+      }`}
+    >
+      <span
+        className={`w-4 h-4 flex items-center justify-center rounded text-[7px] font-mono font-bold ${
+          entry.rank === 1
+            ? 'bg-[#00e5a0] text-[#0a0e17]'
+            : entry.rank === 2
+            ? 'bg-[#38bdf8] text-[#0a0e17]'
+            : entry.rank === 3
+            ? 'bg-[#ff6b35] text-[#0a0e17]'
+            : 'bg-[#2d3a52] text-[#94a3b8]'
+        }`}
+      >
+        {entry.rank}
+      </span>
+
+      <div
+        className="w-2 h-2 rounded-full"
+        style={{ backgroundColor: entry.color }}
+      ></div>
+
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between">
+          <span
+            className={`text-[9px] font-mono truncate ${
+              entry.isStuck ? 'text-[#64748b] line-through' : 'text-[#e2e8f0]'
+            }`}
+          >
+            {entry.genomeId.slice(2, 8)}
+          </span>
+          <span className="text-[9px] font-mono text-[#00e5a0]">
+            {entry.distance.toFixed(0)}px
+          </span>
+        </div>
+        <div className="flex items-center gap-2 mt-0.5">
+          <span className="text-[7px] text-[#64748b] font-mono">
+            SCORE {entry.score.toFixed(0)}
+          </span>
+          <span className="text-[7px] text-[#64748b] font-mono">
+            W{entry.wheelCount}
+          </span>
+          {entry.isStuck && (
+            <span className="text-[7px] text-[#ff6b35] font-mono">STUCK</span>
+          )}
+        </div>
       </div>
     </div>
   );
