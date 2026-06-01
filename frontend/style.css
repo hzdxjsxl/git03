@@ -214,22 +214,35 @@ h1 {
 
 .ai-info {
     display: flex;
-    gap: 25px;
+    gap: 12px;
     color: #94a3b8;
     font-size: 0.9rem;
 }
 
-.ai-info span {
+.ai-info-item {
     background: rgba(255, 255, 255, 0.05);
-    padding: 8px 15px;
+    padding: 8px 14px;
     border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-width: 80px;
+    border: 1px solid rgba(0, 212, 255, 0.15);
 }
 
-.ai-info span span {
+.ai-label {
+    font-size: 0.75rem;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.ai-value {
     color: #00d4ff;
     font-weight: bold;
-    background: none;
-    padding: 0;
+    font-size: 1.3rem;
+    font-variant-numeric: tabular-nums;
 }
 
 .game-over {
@@ -340,7 +353,12 @@ h1 {
     }
 
     .ai-info {
-        flex-direction: column;
-        gap: 10px;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .ai-info-item {
+        min-width: 70px;
+        padding: 6px 10px;
     }
 }

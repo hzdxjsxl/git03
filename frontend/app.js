@@ -1,8 +1,10 @@
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = '/api';
 
 let gameState = null;
 let isPlayerTurn = true;
 let lastMove = null;
+let totalSimulations = 0;
+let aiMoveCount = 0;
 
 const boardEl = document.getElementById('board');
 const blackScoreEl = document.getElementById('black-score');
@@ -11,6 +13,8 @@ const gameStatusEl = document.getElementById('game-status');
 const aiThinkingEl = document.getElementById('ai-thinking');
 const simCountEl = document.getElementById('sim-count');
 const moveCountEl = document.getElementById('move-count');
+const totalSimEl = document.getElementById('total-sim');
+const aiMoveNumEl = document.getElementById('ai-move-num');
 const gameOverEl = document.getElementById('game-over');
 const winnerTextEl = document.getElementById('winner-text');
 const finalScoreEl = document.getElementById('final-score');
@@ -23,12 +27,35 @@ function initBoard() {
         for (let col = 0; col < 8; col++) {
             const cell = document.createElement('div');
             cell.className = 'cell';
+            cell.tabIndex = 0;
+            cell.setAttribute('role', 'button');
+            cell.setAttribute('aria-label', `Cell ${row},${col}`);
             cell.dataset.row = row;
             cell.dataset.col = col;
             cell.addEventListener('click', handleCellClick);
             boardEl.appendChild(cell);
         }
     }
+}
+
+function updateAIInfo(simulations, consideredMoves) {
+    if (simulations !== undefined && simulations !== null) {
+        simCountEl.textContent = simulations;
+    }
+    if (consideredMoves !== undefined && consideredMoves !== null) {
+        moveCountEl.textContent = consideredMoves;
+    }
+    if (totalSimEl) totalSimEl.textContent = totalSimulations;
+    if (aiMoveNumEl) aiMoveNumEl.textContent = aiMoveCount;
+}
+
+function resetAIInfo() {
+    simCountEl.textContent = '0';
+    moveCountEl.textContent = '0';
+    totalSimulations = 0;
+    aiMoveCount = 0;
+    if (totalSimEl) totalSimEl.textContent = '0';
+    if (aiMoveNumEl) aiMoveNumEl.textContent = '0';
 }
 
 function renderBoard() {
@@ -99,13 +126,14 @@ function updateStatus() {
     if (isPlayerTurn) {
         if (gameState.valid_moves.length === 0) {
             gameStatusEl.textContent = '你无法落子，AI继续';
-            setTimeout(requestAIMove, 1000);
+            isPlayerTurn = false;
+            setTimeout(requestAIMove, 800);
         } else {
             gameStatusEl.textContent = '轮到你下棋';
         }
         aiThinkingEl.classList.add('hidden');
     } else {
-        gameStatusEl.textContent = 'AI思考中';
+        gameStatusEl.textContent = 'AI思考中...';
         aiThinkingEl.classList.remove('hidden');
     }
 }
@@ -127,8 +155,11 @@ function showGameOver() {
     gameOverEl.classList.remove('hidden');
 }
 
+let aiMovePending = false;
+
 async function handleCellClick(e) {
     if (!isPlayerTurn || !gameState || gameState.game_over) return;
+    if (aiMovePending) return;
 
     const row = parseInt(e.currentTarget.dataset.row);
     const col = parseInt(e.currentTarget.dataset.col);
@@ -146,9 +177,16 @@ async function handleCellClick(e) {
             body: JSON.stringify({ row, col })
         });
 
+        if (!response.ok) {
+            console.error('Move API error:', response.status);
+            isPlayerTurn = true;
+            updateStatus();
+            return;
+        }
+
         const data = await response.json();
         gameState = data;
-        lastMove = data.player_move;
+        lastMove = data.player_move || null;
         renderBoard();
 
         if (gameState.game_over) {
@@ -157,7 +195,7 @@ async function handleCellClick(e) {
         }
 
         if (gameState.current_player === 2) {
-            setTimeout(requestAIMove, 500);
+            setTimeout(requestAIMove, 400);
         } else {
             isPlayerTurn = true;
             updateStatus();
@@ -171,6 +209,8 @@ async function handleCellClick(e) {
 
 async function requestAIMove() {
     if (gameState.game_over) return;
+    if (aiMovePending) return;
+    aiMovePending = true;
 
     isPlayerTurn = false;
     updateStatus();
@@ -181,26 +221,48 @@ async function requestAIMove() {
             headers: { 'Content-Type': 'application/json' }
         });
 
-        const data = await response.json();
-        gameState = data;
-        lastMove = data.ai_move;
+        if (!response.ok) {
+            console.error('AI move API error:', response.status);
+            isPlayerTurn = true;
+            updateStatus();
+            aiMovePending = false;
+            return;
+        }
 
-        simCountEl.textContent = data.simulations;
-        moveCountEl.textContent = data.considered_moves;
+        const data = await response.json();
+
+        gameState = data;
+        lastMove = data.ai_move || null;
+
+        const simulations = data.simulations;
+        const consideredMoves = data.considered_moves;
+
+        if (typeof simulations === 'number') {
+            totalSimulations += simulations;
+        }
+        aiMoveCount += 1;
+
+        updateAIInfo(simulations, consideredMoves);
 
         renderBoard();
 
         if (gameState.game_over) {
             updateStatus();
+            aiMovePending = false;
             return;
         }
 
         if (gameState.current_player === 1 && gameState.valid_moves.length > 0) {
             isPlayerTurn = true;
-        } else if (gameState.valid_moves.length === 0) {
-            setTimeout(requestAIMove, 1000);
+        } else if (gameState.current_player === 2) {
+            setTimeout(() => {
+                aiMovePending = false;
+                requestAIMove();
+            }, 400);
+            updateStatus();
+            return;
         } else {
-            setTimeout(requestAIMove, 500);
+            isPlayerTurn = true;
         }
         updateStatus();
     } catch (error) {
@@ -208,6 +270,8 @@ async function requestAIMove() {
         isPlayerTurn = true;
         updateStatus();
     }
+
+    aiMovePending = false;
 }
 
 async function resetGame() {
@@ -215,12 +279,18 @@ async function resetGame() {
         const response = await fetch(`${API_BASE}/reset`, {
             method: 'POST'
         });
+
+        if (!response.ok) {
+            console.error('Reset API error:', response.status);
+            return;
+        }
+
         gameState = await response.json();
         lastMove = null;
         isPlayerTurn = true;
+        aiMovePending = false;
         gameOverEl.classList.add('hidden');
-        simCountEl.textContent = '0';
-        moveCountEl.textContent = '0';
+        resetAIInfo();
         renderBoard();
         updateStatus();
     } catch (error) {

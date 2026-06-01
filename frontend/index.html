@@ -35,8 +35,22 @@
         <div class="controls">
             <button id="reset-btn" class="btn">重新开始</button>
             <div class="ai-info">
-                <span>模拟次数: <span id="sim-count">0</span></span>
-                <span>考虑走法: <span id="move-count">0</span></span>
+                <div class="ai-info-item">
+                    <span class="ai-label">本轮模拟</span>
+                    <span class="ai-value" id="sim-count">0</span>
+                </div>
+                <div class="ai-info-item">
+                    <span class="ai-label">考虑走法</span>
+                    <span class="ai-value" id="move-count">0</span>
+                </div>
+                <div class="ai-info-item">
+                    <span class="ai-label">累计模拟</span>
+                    <span class="ai-value" id="total-sim">0</span>
+                </div>
+                <div class="ai-info-item">
+                    <span class="ai-label">AI落子</span>
+                    <span class="ai-value" id="ai-move-num">0</span>
+                </div>
             </div>
         </div>
 
