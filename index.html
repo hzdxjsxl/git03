@@ -5,51 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>微型深度学习框架 - 计算图可视化</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
             min-height: 100vh;
             color: #fff;
-            overflow-x: hidden;
         }
-        
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        
-        header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; margin-bottom: 30px; }
         h1 {
             font-size: 2.5rem;
             background: linear-gradient(90deg, #00d2ff, #3a7bd5);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            margin-bottom: 10px;
         }
-        
-        .subtitle {
-            color: #aaa;
-            font-size: 1.1rem;
-        }
-        
-        .main-content {
-            display: grid;
-            grid-template-columns: 1fr 3fr;
-            gap: 20px;
-        }
-        
+        .main-content { display: grid; grid-template-columns: 1fr 3fr; gap: 20px; }
         .control-panel {
             background: rgba(255, 255, 255, 0.05);
             border-radius: 15px;
@@ -57,14 +29,6 @@
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
-        
-        .panel-title {
-            font-size: 1.2rem;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
         button {
             width: 100%;
             padding: 12px;
@@ -73,215 +37,71 @@
             border-radius: 8px;
             font-size: 1rem;
             cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
         }
-        
-        button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        
         .btn-primary {
             background: linear-gradient(90deg, #00d2ff, #3a7bd5);
             color: white;
         }
-        
-        .btn-primary:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(0, 210, 255, 0.4);
-        }
-        
         .btn-secondary {
             background: rgba(255, 255, 255, 0.1);
             color: white;
         }
-        
-        .btn-secondary:hover:not(:disabled) {
-            background: rgba(255, 255, 255, 0.2);
-        }
-        
-        .stats {
-            margin-top: 20px;
-        }
-        
+        .stats { margin-top: 20px; }
         .stat-item {
             display: flex;
             justify-content: space-between;
             padding: 10px 0;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
-        
-        .stat-label {
-            color: #aaa;
-        }
-        
-        .stat-value {
-            color: #00d2ff;
-            font-weight: bold;
-            font-family: 'Courier New', monospace;
-        }
-        
-        .stat-value.loss {
-            color: #ff6b6b;
-        }
-        
+        .stat-value { color: #00d2ff; font-weight: bold; font-family: monospace; }
+        .stat-value.loss { color: #ff6b6b; }
         .canvas-container {
             background: rgba(255, 255, 255, 0.05);
             border-radius: 15px;
             padding: 20px;
-            backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            position: relative;
-            overflow: hidden;
         }
-        
         #graphCanvas {
             width: 100%;
             border-radius: 10px;
-            background: rgba(0, 0, 0, 0.2);
-            cursor: crosshair;
+            background: #0a0a15;
         }
-        
-        .node-legend {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            background: rgba(0, 0, 0, 0.6);
-            padding: 15px;
-            border-radius: 10px;
-            font-size: 0.85rem;
-            backdrop-filter: blur(10px);
-        }
-        
-        .legend-item {
-            display: flex;
-            align-items: center;
-            margin: 8px 0;
-        }
-        
-        .legend-color {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            margin-right: 10px;
-            box-shadow: 0 0 10px currentColor;
-        }
-        
-        .legend-color.input { background: #00ff88; box-shadow: 0 0 10px #00ff88; }
-        .legend-color.param { background: #ff6b6b; box-shadow: 0 0 10px #ff6b6b; }
-        .legend-color.op { background: #ffd93d; box-shadow: 0 0 10px #ffd93d; }
-        .legend-color.output { background: #6bcb77; box-shadow: 0 0 10px #6bcb77; }
-        
-        .node-info {
-            position: absolute;
-            background: rgba(0, 0, 0, 0.95);
-            padding: 15px;
-            border-radius: 10px;
-            pointer-events: none;
-            z-index: 100;
-            font-size: 0.9rem;
-            border: 1px solid rgba(0, 210, 255, 0.3);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(10px);
-            min-width: 200px;
-        }
-        
-        .info-row {
-            margin: 8px 0;
-            display: flex;
-            justify-content: space-between;
-        }
-        
-        .info-label {
-            color: #aaa;
-        }
-        
-        .info-value {
-            color: #00d2ff;
-            font-family: 'Courier New', monospace;
-        }
-        
-        .training-log {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 15px;
-            padding: 20px;
-            margin-top: 20px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
         #logArea {
             height: 150px;
             overflow-y: auto;
             background: rgba(0, 0, 0, 0.3);
             border-radius: 8px;
             padding: 15px;
-            font-family: 'Courier New', monospace;
+            font-family: monospace;
             font-size: 0.9rem;
-            line-height: 1.5;
         }
-        
-        #logArea::-webkit-scrollbar {
-            width: 6px;
-        }
-        
-        #logArea::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 3px;
-        }
-        
-        #logArea::-webkit-scrollbar-thumb {
-            background: rgba(0, 210, 255, 0.5);
-            border-radius: 3px;
-        }
-        
         .loss-chart {
             margin-top: 20px;
             height: 200px;
             background: rgba(0, 0, 0, 0.3);
             border-radius: 8px;
-            position: relative;
-            overflow: hidden;
         }
-        
-        .chart-title {
-            position: absolute;
-            top: 10px;
-            left: 15px;
-            font-size: 0.9rem;
-            color: #aaa;
+        #lossChart { width: 100%; height: 100%; }
+        .node-info {
+            position: fixed;
+            background: rgba(0, 0, 0, 0.95);
+            padding: 15px;
+            border-radius: 10px;
+            pointer-events: none;
+            z-index: 100;
+            border: 1px solid #00d2ff;
+            min-width: 200px;
         }
-        
-        #lossChart {
-            width: 100%;
-            height: 100%;
-        }
-        
         .training-progress {
-            margin-top: 15px;
             height: 4px;
             background: rgba(255, 255, 255, 0.1);
             border-radius: 2px;
             overflow: hidden;
+            margin-top: 15px;
         }
-        
         .progress-bar {
             height: 100%;
             background: linear-gradient(90deg, #00d2ff, #3a7bd5);
-            border-radius: 2px;
-            transition: width 0.1s linear;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.7; transform: scale(1.05); }
-        }
-        
-        @keyframes glow {
-            0%, 100% { box-shadow: 0 0 5px currentColor, 0 0 10px currentColor; }
-            50% { box-shadow: 0 0 15px currentColor, 0 0 25px currentColor, 0 0 35px currentColor; }
         }
     </style>
 </head>
@@ -289,34 +109,20 @@
     <div class="container">
         <header>
             <h1>微型深度学习框架</h1>
-            <p class="subtitle">纯手工实现的计算图与反向传播</p>
+            <p>纯手工实现的计算图与反向传播</p>
         </header>
         
         <div class="main-content">
             <div class="control-panel">
-                <div class="panel-title">训练控制</div>
-                <button class="btn-primary" id="startBtn" onclick="startTraining()">开始训练</button>
-                <button class="btn-secondary" onclick="resetGraph()">重置图</button>
-                <button class="btn-secondary" id="highlightBtn" onclick="highlightNodes()" disabled>高亮节点</button>
+                <button class="btn-primary" onclick="startTraining()">开始训练</button>
+                <button class="btn-secondary" onclick="resetGraph()">重置</button>
+                <button class="btn-secondary" onclick="highlightNodes()" id="highlightBtn" disabled>高亮节点</button>
                 
                 <div class="stats">
-                    <div class="panel-title">训练统计</div>
-                    <div class="stat-item">
-                        <span class="stat-label">当前轮次</span>
-                        <span class="stat-value" id="epoch">0</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">当前损失</span>
-                        <span class="stat-value loss" id="loss">0.0000</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">节点数</span>
-                        <span class="stat-value" id="nodeCount">0</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">边数</span>
-                        <span class="stat-value" id="edgeCount">0</span>
-                    </div>
+                    <div class="stat-item"><span>轮次</span><span class="stat-value" id="epoch">0</span></div>
+                    <div class="stat-item"><span>损失</span><span class="stat-value loss" id="loss">0.0000</span></div>
+                    <div class="stat-item"><span>节点</span><span class="stat-value" id="nodeCount">0</span></div>
+                    <div class="stat-item"><span>边数</span><span class="stat-value" id="edgeCount">0</span></div>
                 </div>
                 
                 <div class="training-progress">
@@ -326,131 +132,85 @@
             
             <div class="canvas-container">
                 <canvas id="graphCanvas" width="900" height="500"></canvas>
-                
-                <div class="node-legend">
-                    <div class="legend-item">
-                        <div class="legend-color input"></div>
-                        <span>输入节点</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color param"></div>
-                        <span>参数节点</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color op"></div>
-                        <span>运算节点</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color output"></div>
-                        <span>输出节点</span>
-                    </div>
-                </div>
-                
-                <div class="node-info" id="nodeInfo" style="display: none;">
-                    <div class="info-row">
-                        <span class="info-label">标签:</span>
-                        <span class="info-value" id="infoLabel"></span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">数据:</span>
-                        <span class="info-value" id="infoData"></span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">梯度:</span>
-                        <span class="info-value" id="infoGrad"></span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">运算:</span>
-                        <span class="info-value" id="infoOp"></span>
-                    </div>
-                </div>
             </div>
         </div>
         
-        <div class="training-log">
-            <div class="panel-title">训练日志</div>
+        <div style="margin-top: 20px;">
             <div id="logArea"></div>
-            
             <div class="loss-chart">
-                <div class="chart-title">损失变化曲线</div>
                 <canvas id="lossChart" width="800" height="160"></canvas>
             </div>
+        </div>
+        
+        <div class="node-info" id="nodeInfo" style="display: none;">
+            <div><strong>标签:</strong> <span id="infoLabel"></span></div>
+            <div><strong>数据:</strong> <span id="infoData"></span></div>
+            <div><strong>梯度:</strong> <span id="infoGrad"></span></div>
+            <div><strong>运算:</strong> <span id="infoOp"></span></div>
         </div>
     </div>
 
     <script>
         const canvas = document.getElementById('graphCanvas');
         const ctx = canvas.getContext('2d');
-        const nodeInfo = document.getElementById('nodeInfo');
-        const logArea = document.getElementById('logArea');
         const lossChart = document.getElementById('lossChart');
         const lossCtx = lossChart.getContext('2d');
-        const startBtn = document.getElementById('startBtn');
-        const highlightBtn = document.getElementById('highlightBtn');
         
-        let graphData = null;
         let nodes = [];
         let edges = [];
         let highlightedNodeIds = new Set();
         let hoveredNodeId = null;
         let losses = [];
-        let animationId = null;
         let isTraining = false;
-        let eventSource = null;
         
         const colors = {
             input: '#00ff88',
             param: '#ff6b6b',
             op: '#ffd93d',
             output: '#6bcb77',
-            edge: 'rgba(255, 255, 255, 0.2)',
-            edgeHighlighted: 'rgba(0, 210, 255, 0.8)'
+            edge: 'rgba(255, 255, 255, 0.3)',
+            edgeHighlighted: '#00d2ff'
         };
         
         function getNodeColor(node) {
-            if (node.label.startsWith('x')) return colors.input;
-            if (node.label.startsWith('L') && (node.label.includes('.w') || node.label.includes('.b'))) return colors.param;
-            if (node.label === 'avg_loss' || node.label.startsWith('loss')) return colors.output;
+            if (node.label && node.label.startsWith('x')) return colors.input;
+            if (node.label && node.label.startsWith('L') && (node.label.includes('.w') || node.label.includes('.b'))) return colors.param;
+            if (node.label && (node.label === 'avg_loss' || node.label.startsWith('loss'))) return colors.output;
             return colors.op;
         }
         
-        function layoutGraph() {
-            if (!graphData) return;
+        function layoutGraph(graphData) {
+            if (!graphData || !graphData.nodes) return;
             
             const layerMap = {};
-            graphData.nodes.forEach((node, index) => {
+            graphData.nodes.forEach(node => {
                 const layer = determineLayer(node);
                 if (!layerMap[layer]) layerMap[layer] = [];
-                layerMap[layer].push({ ...node, originalIndex: index });
+                layerMap[layer].push(node);
             });
             
             nodes = [];
             const layerWidth = canvas.width / 6;
-            const baseY = canvas.height / 2;
             
             Object.keys(layerMap).sort((a, b) => parseInt(a) - parseInt(b)).forEach(layer => {
                 const layerNodes = layerMap[layer];
                 const spacing = canvas.height / (layerNodes.length + 1);
                 
                 layerNodes.forEach((node, i) => {
-                    const x = parseInt(layer) * layerWidth + 100;
-                    const y = spacing * (i + 1);
-                    
                     nodes.push({
                         ...node,
-                        x: x,
-                        y: y,
-                        baseX: x,
-                        baseY: y,
-                        scale: 1
+                        x: parseInt(layer) * layerWidth + 100,
+                        y: spacing * (i + 1)
                     });
                 });
             });
             
-            edges = graphData.edges;
+            edges = graphData.edges || [];
+            addLog(`计算图已加载: ${nodes.length} 个节点, ${edges.length} 条边`);
         }
         
         function determineLayer(node) {
+            if (!node.label) return 2;
             if (node.label.startsWith('x')) return 0;
             if (node.label.startsWith('L1')) return 1;
             if (node.label.startsWith('L2')) return 3;
@@ -482,43 +242,23 @@
                 const isHighlighted = isEdgeHighlighted(edge);
                 
                 ctx.beginPath();
-                ctx.moveTo(fromNode.x + 18 * fromNode.scale, fromNode.y);
-                ctx.lineTo(toNode.x - 18 * toNode.scale, toNode.y);
+                ctx.moveTo(fromNode.x, fromNode.y);
+                ctx.lineTo(toNode.x, toNode.y);
                 ctx.strokeStyle = isHighlighted ? colors.edgeHighlighted : colors.edge;
                 ctx.lineWidth = isHighlighted ? 4 : 1;
                 ctx.stroke();
-                
-                if (!isHighlighted) {
-                    const angle = Math.atan2(toNode.y - fromNode.y, toNode.x - fromNode.x);
-                    const arrowLength = 6;
-                    ctx.beginPath();
-                    ctx.moveTo(toNode.x - 18 * toNode.scale, toNode.y);
-                    ctx.lineTo(
-                        toNode.x - 18 * toNode.scale - arrowLength * Math.cos(angle - Math.PI / 6),
-                        toNode.y - arrowLength * Math.sin(angle - Math.PI / 6)
-                    );
-                    ctx.moveTo(toNode.x - 18 * toNode.scale, toNode.y);
-                    ctx.lineTo(
-                        toNode.x - 18 * toNode.scale - arrowLength * Math.cos(angle + Math.PI / 6),
-                        toNode.y - arrowLength * Math.sin(angle + Math.PI / 6)
-                    );
-                    ctx.strokeStyle = colors.edge;
-                    ctx.lineWidth = 1;
-                    ctx.stroke();
-                }
             });
             
             nodes.forEach(node => {
                 const color = getNodeColor(node);
                 const isHighlighted = isNodeHighlighted(node.id);
-                const scale = isHighlighted ? 1.4 : node.scale;
-                const radius = 18 * scale;
+                const radius = isHighlighted ? 22 : 15;
                 
                 if (isHighlighted) {
                     ctx.beginPath();
                     ctx.arc(node.x, node.y, radius + 15, 0, Math.PI * 2);
                     const gradient = ctx.createRadialGradient(node.x, node.y, radius, node.x, node.y, radius + 15);
-                    gradient.addColorStop(0, color + '40');
+                    gradient.addColorStop(0, color + '60');
                     gradient.addColorStop(1, color + '00');
                     ctx.fillStyle = gradient;
                     ctx.fill();
@@ -534,15 +274,12 @@
                 
                 ctx.beginPath();
                 ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
-                
                 if (isHighlighted) {
                     ctx.shadowColor = color;
                     ctx.shadowBlur = 20;
                 }
-                
                 ctx.fillStyle = color;
                 ctx.fill();
-                
                 ctx.shadowBlur = 0;
                 
                 ctx.beginPath();
@@ -552,50 +289,20 @@
                 ctx.stroke();
                 
                 ctx.fillStyle = '#000';
-                ctx.font = `bold ${Math.max(8, 10 * scale)}px Arial`;
+                ctx.font = `bold ${isHighlighted ? 11 : 9}px Arial`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 
                 let displayText = '';
                 if (node.label) {
-                    displayText = node.label.length > 8 ? node.label.substring(0, 8) + '..' : node.label;
+                    displayText = node.label.length > 6 ? node.label.substring(0, 6) : node.label;
                 } else if (node.op) {
                     displayText = node.op;
                 }
-                
                 ctx.fillText(displayText, node.x, node.y);
             });
             
-            animationId = requestAnimationFrame(drawGraph);
-        }
-        
-        function showNodeInfo(node, event) {
-            nodeInfo.style.display = 'block';
-            const rect = canvas.getBoundingClientRect();
-            const x = event.clientX - rect.left;
-            const y = event.clientY - rect.top;
-            
-            let infoX = event.clientX + 15;
-            let infoY = event.clientY + 15;
-            
-            if (infoX + 220 > window.innerWidth) {
-                infoX = event.clientX - 235;
-            }
-            if (infoY + 100 > window.innerHeight) {
-                infoY = event.clientY - 115;
-            }
-            
-            nodeInfo.style.left = infoX + 'px';
-            nodeInfo.style.top = infoY + 'px';
-            
-            document.getElementById('infoLabel').textContent = node.label || '无标签';
-            document.getElementById('infoData').textContent = node.data !== undefined ? node.data.toFixed(4) : 'N/A';
-            document.getElementById('infoGrad').textContent = node.grad !== undefined ? node.grad.toFixed(4) : 'N/A';
-            document.getElementById('infoOp').textContent = node.op || '无';
-        }
-        
-        function hideNodeInfo() {
-            nodeInfo.style.display = 'none';
+            requestAnimationFrame(drawGraph);
         }
         
         function highlightNodes() {
@@ -614,36 +321,27 @@
         }
         
         function resetGraph() {
-            if (eventSource) {
-                eventSource.close();
-                eventSource = null;
-            }
-            
-            highlightedNodeIds.clear();
-            hoveredNodeId = null;
-            graphData = null;
             nodes = [];
             edges = [];
             losses = [];
+            highlightedNodeIds.clear();
+            hoveredNodeId = null;
             isTraining = false;
-            
-            startBtn.disabled = false;
-            highlightBtn.disabled = true;
             
             document.getElementById('epoch').textContent = '0';
             document.getElementById('loss').textContent = '0.0000';
             document.getElementById('nodeCount').textContent = '0';
             document.getElementById('edgeCount').textContent = '0';
             document.getElementById('progressBar').style.width = '0%';
-            
-            logArea.innerHTML = '';
+            document.getElementById('highlightBtn').disabled = true;
+            document.getElementById('logArea').innerHTML = '';
             drawLossChart();
         }
         
         function addLog(message) {
             const timestamp = new Date().toLocaleTimeString();
-            logArea.innerHTML += `[${timestamp}] ${message}\n`;
-            logArea.scrollTop = logArea.scrollHeight;
+            document.getElementById('logArea').innerHTML += `[${timestamp}] ${message}\n`;
+            document.getElementById('logArea').scrollTop = document.getElementById('logArea').scrollHeight;
         }
         
         function drawLossChart() {
@@ -662,51 +360,26 @@
             losses.forEach((loss, index) => {
                 const x = (index / (losses.length - 1)) * lossChart.width;
                 const y = lossChart.height - ((loss - minLoss) / range) * (lossChart.height - 20) - 10;
-                
                 if (index === 0) {
                     lossCtx.moveTo(x, y);
                 } else {
                     lossCtx.lineTo(x, y);
                 }
             });
-            
             lossCtx.stroke();
-            
-            lossCtx.beginPath();
-            lossCtx.fillStyle = '#00d2ff';
-            lossCtx.globalAlpha = 0.1;
-            lossCtx.lineTo(lossChart.width, lossChart.height - 10);
-            lossCtx.lineTo(0, lossChart.height - 10);
-            lossCtx.closePath();
-            lossCtx.fill();
-            lossCtx.globalAlpha = 1;
-            
-            const lastPoint = losses.length - 1;
-            const lastX = (lastPoint / (losses.length - 1)) * lossChart.width;
-            const lastY = lossChart.height - ((losses[lastPoint] - minLoss) / range) * (lossChart.height - 20) - 10;
-            
-            lossCtx.beginPath();
-            lossCtx.fillStyle = '#ff6b6b';
-            lossCtx.shadowColor = '#ff6b6b';
-            lossCtx.shadowBlur = 10;
-            lossCtx.arc(lastX, lastY, 6, 0, Math.PI * 2);
-            lossCtx.fill();
-            lossCtx.shadowBlur = 0;
         }
         
         async function startTraining() {
             if (isTraining) return;
-            
             isTraining = true;
-            startBtn.disabled = true;
-            highlightBtn.disabled = true;
             
+            document.getElementById('highlightBtn').disabled = true;
             highlightedNodeIds.clear();
             losses = [];
             
             addLog('开始训练异或门网络...');
             
-            eventSource = new EventSource('/train-stream');
+            const eventSource = new EventSource('/train-stream');
             
             eventSource.onmessage = function(event) {
                 try {
@@ -718,39 +391,32 @@
                         document.getElementById('progressBar').style.width = (data.epoch / 5000 * 100) + '%';
                         
                         losses.push(data.loss);
-                        if (losses.length > 500) {
-                            losses.shift();
-                        }
+                        if (losses.length > 500) losses.shift();
                         drawLossChart();
                     } else if (data.status === 'completed') {
-                        graphData = data.graphData;
-                        layoutGraph();
+                        addLog('训练完成，正在绘制计算图...');
+                        layoutGraph(data.graphData);
                         
                         document.getElementById('nodeCount').textContent = nodes.length;
                         document.getElementById('edgeCount').textContent = edges.length;
                         document.getElementById('progressBar').style.width = '100%';
+                        document.getElementById('highlightBtn').disabled = false;
                         
-                        addLog('训练完成!');
                         addLog(`最终损失: ${losses[losses.length - 1].toFixed(6)}`);
-                        addLog(`节点数: ${nodes.length}`);
+                        addLog(`计算图节点数: ${nodes.length}`);
                         
-                        highlightBtn.disabled = false;
                         isTraining = false;
-                        
                         eventSource.close();
-                        eventSource = null;
                     }
                 } catch (e) {
-                    console.error('解析数据失败:', e);
+                    addLog('数据解析错误: ' + e.message);
                 }
             };
             
             eventSource.onerror = function(error) {
                 addLog('训练连接中断');
-                startBtn.disabled = false;
                 isTraining = false;
                 eventSource.close();
-                eventSource = null;
             };
         }
         
@@ -762,8 +428,9 @@
             let found = false;
             for (const node of nodes) {
                 const distance = Math.sqrt((node.x - x) ** 2 + (node.y - y) ** 2);
-                const scale = isNodeHighlighted(node.id) ? 1.4 : node.scale;
-                if (distance < 18 * scale) {
+                const radius = isNodeHighlighted(node.id) ? 22 : 15;
+                
+                if (distance < radius) {
                     hoveredNodeId = node.id;
                     showNodeInfo(node, event);
                     found = true;
@@ -773,24 +440,23 @@
             
             if (!found) {
                 hoveredNodeId = null;
-                hideNodeInfo();
+                document.getElementById('nodeInfo').style.display = 'none';
             }
         });
         
-        canvas.addEventListener('mouseleave', () => {
-            hoveredNodeId = null;
-            hideNodeInfo();
-        });
+        function showNodeInfo(node, event) {
+            const info = document.getElementById('nodeInfo');
+            info.style.display = 'block';
+            info.style.left = (event.clientX + 15) + 'px';
+            info.style.top = (event.clientY + 15) + 'px';
+            
+            document.getElementById('infoLabel').textContent = node.label || '无标签';
+            document.getElementById('infoData').textContent = node.data !== undefined ? node.data.toFixed(4) : 'N/A';
+            document.getElementById('infoGrad').textContent = node.grad !== undefined ? node.grad.toFixed(4) : 'N/A';
+            document.getElementById('infoOp').textContent = node.op || '无';
+        }
         
-        window.addEventListener('load', () => {
-            drawGraph();
-        });
-        
-        window.addEventListener('beforeunload', () => {
-            if (eventSource) {
-                eventSource.close();
-            }
-        });
+        drawGraph();
     </script>
 </body>
 </html>
