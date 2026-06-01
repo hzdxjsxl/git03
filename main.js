@@ -10,17 +10,18 @@ class VoxelWorld {
         this.chunkSize = 32;
         this.renderDistance = 4;
         this.chunks = new Map();
+        this.loadingQueue = [];
         
         this.terrainGenerator = new TerrainGenerator(12345);
         this.mesher = new GreedyMesher();
         this.camera = new Camera(this.canvas);
         
         this.programs = {};
-        this.buffers = {};
         
         this.frameCount = 0;
         this.lastFpsUpdate = 0;
         this.fps = 0;
+        this.frameTime = 0;
         
         this.visibleFaceCount = 0;
         
@@ -29,17 +30,25 @@ class VoxelWorld {
         window.addEventListener('resize', () => this.resize());
         
         this.lastTime = performance.now();
+        this.targetDeltaTime = 1000 / 60;
+        this.accumulator = 0;
+        
         this.animate();
     }
 
     init() {
+        if (!this.gl) {
+            console.error('WebGL not supported');
+            return;
+        }
+        
         this.gl.clearColor(0.5, 0.7, 1.0, 1.0);
         this.gl.enable(this.gl.DEPTH_TEST);
         this.gl.enable(this.gl.CULL_FACE);
+        this.gl.frontFace(this.gl.CCW);
         
         this.createProgram();
-        this.createBuffers();
-        this.loadInitialChunks();
+        this.loadInitialChunksAsync();
     }
 
     createProgram() {
@@ -54,8 +63,9 @@ class VoxelWorld {
             varying vec3 vPosition;
             
             void main() {
-                gl_Position = uProjection * uView * vec4(aPosition, 1.0);
-                vNormal = aNormal;
+                vec4 pos = uProjection * uView * vec4(aPosition, 1.0);
+                gl_Position = pos;
+                vNormal = normalize(aNormal);
                 vPosition = aPosition;
             }
         `;
@@ -67,8 +77,9 @@ class VoxelWorld {
             varying vec3 vPosition;
             
             void main() {
-                vec3 lightDir = normalize(vec3(1.0, 1.0, 1.0));
-                float diff = max(dot(vNormal, lightDir), 0.3);
+                vec3 lightDir = normalize(vec3(1.0, 2.0, 1.0));
+                float diff = max(dot(vNormal, lightDir), 0.25);
+                float ambient = 0.3;
                 
                 float height = vPosition.y;
                 vec3 color;
@@ -83,12 +94,14 @@ class VoxelWorld {
                     color = vec3(0.13, 0.55, 0.13);
                 }
                 
-                gl_FragColor = vec4(color * diff, 1.0);
+                gl_FragColor = vec4(color * (ambient + diff), 1.0);
             }
         `;
         
         const vertexShader = this.createShader(vertexShaderSource, this.gl.VERTEX_SHADER);
         const fragmentShader = this.createShader(fragmentShaderSource, this.gl.FRAGMENT_SHADER);
+        
+        if (!vertexShader || !fragmentShader) return;
         
         const program = this.gl.createProgram();
         this.gl.attachShader(program, vertexShader);
@@ -97,6 +110,7 @@ class VoxelWorld {
         
         if (!this.gl.getProgramParameter(program, this.gl.LINK_STATUS)) {
             console.error('Shader link error:', this.gl.getProgramInfoLog(program));
+            return;
         }
         
         this.programs.main = program;
@@ -119,24 +133,43 @@ class VoxelWorld {
         return shader;
     }
 
-    createBuffers() {
-        this.buffers.position = this.gl.createBuffer();
-        this.buffers.normal = this.gl.createBuffer();
-        this.buffers.index = this.gl.createBuffer();
-    }
-
     resize() {
+        if (!this.canvas) return;
         this.canvas.width = window.innerWidth;
         this.canvas.height = window.innerHeight;
-        this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+        if (this.gl) {
+            this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+        }
     }
 
-    loadInitialChunks() {
-        for (let x = -this.renderDistance; x <= this.renderDistance; x++) {
-            for (let z = -this.renderDistance; z <= this.renderDistance; z++) {
-                this.loadChunk(x, z);
+    loadInitialChunksAsync() {
+        const cameraChunkX = 0;
+        const cameraChunkZ = 0;
+        
+        for (let dx = -this.renderDistance; dx <= this.renderDistance; dx++) {
+            for (let dz = -this.renderDistance; dz <= this.renderDistance; dz++) {
+                const priority = Math.abs(dx) + Math.abs(dz);
+                this.loadingQueue.push({
+                    x: cameraChunkX + dx,
+                    z: cameraChunkZ + dz,
+                    priority: priority
+                });
             }
         }
+        
+        this.loadingQueue.sort((a, b) => a.priority - b.priority);
+        this.processLoadingQueue();
+    }
+
+    processLoadingQueue() {
+        if (this.loadingQueue.length === 0) return;
+        
+        const item = this.loadingQueue.shift();
+        this.loadChunk(item.x, item.z);
+        
+        setTimeout(() => {
+            this.processLoadingQueue();
+        }, 16);
     }
 
     loadChunk(chunkX, chunkZ) {
@@ -185,9 +218,9 @@ class VoxelWorld {
         const toLoad = new Set();
         const toUnload = new Set();
         
-        for (let x = -this.renderDistance; x <= this.renderDistance; x++) {
-            for (let z = -this.renderDistance; z <= this.renderDistance; z++) {
-                toLoad.add(`${cameraChunkX + x},${cameraChunkZ + z}`);
+        for (let dx = -this.renderDistance; dx <= this.renderDistance; dx++) {
+            for (let dz = -this.renderDistance; dz <= this.renderDistance; dz++) {
+                toLoad.add(`${cameraChunkX + dx},${cameraChunkZ + dz}`);
             }
         }
         
@@ -205,12 +238,19 @@ class VoxelWorld {
         toLoad.forEach(key => {
             if (!this.chunks.has(key)) {
                 const [x, z] = key.split(',').map(Number);
-                this.loadChunk(x, z);
+                const priority = Math.abs(x - cameraChunkX) + Math.abs(z - cameraChunkZ);
+                const existing = this.loadingQueue.find(item => item.x === x && item.z === z);
+                if (!existing) {
+                    this.loadingQueue.push({ x, z, priority });
+                    this.loadingQueue.sort((a, b) => a.priority - b.priority);
+                }
             }
         });
     }
 
     render() {
+        if (!this.gl || !this.programs.main) return;
+        
         this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
         
         const program = this.programs.main;
@@ -245,36 +285,63 @@ class VoxelWorld {
     }
 
     updateInfo() {
-        document.getElementById('pos').textContent = 
-            `${Math.floor(this.camera.position.x)}, ${Math.floor(this.camera.position.y)}, ${Math.floor(this.camera.position.z)}`;
+        const pos = document.getElementById('pos');
+        const chunkElem = document.getElementById('chunk');
+        const faces = document.getElementById('faces');
+        const fps = document.getElementById('fps');
+        
+        if (pos) {
+            pos.textContent = `${Math.floor(this.camera.position.x)}, ${Math.floor(this.camera.position.y)}, ${Math.floor(this.camera.position.z)}`;
+        }
         
         const chunkX = Math.floor(this.camera.position.x / this.chunkSize);
         const chunkZ = Math.floor(this.camera.position.z / this.chunkSize);
-        document.getElementById('chunk').textContent = `${chunkX}, ${chunkZ}`;
+        if (chunkElem) {
+            chunkElem.textContent = `${chunkX}, ${chunkZ}`;
+        }
         
-        document.getElementById('faces').textContent = this.visibleFaceCount.toLocaleString();
-        document.getElementById('fps').textContent = this.fps;
+        if (faces) {
+            faces.textContent = this.visibleFaceCount.toLocaleString();
+        }
+        
+        if (fps) {
+            fps.textContent = this.fps;
+        }
     }
 
     animate() {
         const currentTime = performance.now();
-        const deltaTime = (currentTime - this.lastTime) / 1000;
+        const deltaTime = currentTime - this.lastTime;
         this.lastTime = currentTime;
         
+        this.accumulator += deltaTime;
+        
+        while (this.accumulator >= this.targetDeltaTime) {
+            this.camera.update(this.targetDeltaTime / 1000);
+            this.updateChunks();
+            this.accumulator -= this.targetDeltaTime;
+        }
+        
         this.frameCount++;
-        if (currentTime - this.lastFpsUpdate >= 1000) {
-            this.fps = this.frameCount;
+        if (currentTime - this.lastFpsUpdate >= 500) {
+            this.fps = Math.round(this.frameCount * 1000 / (currentTime - this.lastFpsUpdate));
             this.frameCount = 0;
             this.lastFpsUpdate = currentTime;
         }
         
-        this.camera.update(deltaTime);
-        this.updateChunks();
         this.render();
         this.updateInfo();
+        
+        if (this.loadingQueue.length > 0) {
+            requestAnimationFrame(() => {
+                this.processLoadingQueue();
+            });
+        }
         
         requestAnimationFrame(() => this.animate());
     }
 }
 
-new VoxelWorld();
+document.addEventListener('DOMContentLoaded', () => {
+    new VoxelWorld();
+});

@@ -150,10 +150,10 @@ export class GreedyMesher {
         if (axis === 1) {
             const px = normal[0] < 0 ? 0 : 1;
             this.vertices.push(
-                px + offsetX, y + 0.5, z + 0.5 + offsetZ,
-                px + offsetX, y + 0.5, z + height + 0.5 + offsetZ,
-                px + offsetX, y + width + 0.5, z + height + 0.5 + offsetZ,
-                px + offsetX, y + width + 0.5, z + 0.5 + offsetZ
+                px + offsetX, y + 0.5, x + 0.5 + offsetZ,
+                px + offsetX, y + 0.5, x + height + 0.5 + offsetZ,
+                px + offsetX, y + width + 0.5, x + height + 0.5 + offsetZ,
+                px + offsetX, y + width + 0.5, x + 0.5 + offsetZ
             );
             this.uvs.push(
                 0, 0,
@@ -164,10 +164,10 @@ export class GreedyMesher {
         } else if (axis === 2) {
             const py = normal[1] < 0 ? 0 : 1;
             this.vertices.push(
-                x + 0.5, py, z + 0.5 + offsetZ,
-                x + width + 0.5, py, z + 0.5 + offsetZ,
-                x + width + 0.5, py, z + height + 0.5 + offsetZ,
-                x + 0.5, py, z + height + 0.5 + offsetZ
+                x + 0.5, py, y + 0.5 + offsetZ,
+                x + width + 0.5, py, y + 0.5 + offsetZ,
+                x + width + 0.5, py, y + height + 0.5 + offsetZ,
+                x + 0.5, py, y + height + 0.5 + offsetZ
             );
             this.uvs.push(
                 0, 0,
@@ -191,7 +191,7 @@ export class GreedyMesher {
             );
         }
 
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < 4; i++) {
             this.normals.push(normal[0], normal[1], normal[2]);
         }
 
