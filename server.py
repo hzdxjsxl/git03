@@ -2,7 +2,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 import json
 import sys
 import os
-import threading
+import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -20,6 +20,11 @@ class RequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(f.read())
         elif self.path == '/train-stream':
             self.handle_train_stream()
+        elif self.path == '/health':
+            self.send_response(200)
+            self.send_header('Content-type', 'text/plain')
+            self.end_headers()
+            self.wfile.write(b'OK')
         else:
             self.send_response(404)
             self.end_headers()
@@ -29,22 +34,12 @@ class RequestHandler(BaseHTTPRequestHandler):
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
             
-            model, losses, X = train_xor()
-            
-            test_input = [Value(0), Value(0)]
-            pred = model(test_input)
-            graph_data = pred.get_graph_data()
-            
-            response = {
-                'graphData': graph_data,
-                'losses': losses,
-                'message': 'Training completed successfully'
-            }
+            result = train_and_return()
             
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
-            self.wfile.write(json.dumps(response).encode())
+            self.wfile.write(json.dumps(result).encode())
         else:
             self.send_response(404)
             self.end_headers()
@@ -54,6 +49,8 @@ class RequestHandler(BaseHTTPRequestHandler):
         self.send_header('Content-Type', 'text/event-stream')
         self.send_header('Cache-Control', 'no-cache')
         self.send_header('Connection', 'keep-alive')
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST')
         self.end_headers()
         
         try:
@@ -67,8 +64,9 @@ class RequestHandler(BaseHTTPRequestHandler):
             ]
             y = [0, 1, 1, 0]
             
-            epochs = 5000
+            epochs = 2000
             lr = 0.8
+            report_interval = 50
             
             for epoch in range(epochs):
                 model.zero_grad()
@@ -86,17 +84,22 @@ class RequestHandler(BaseHTTPRequestHandler):
                 total_loss.label = 'avg_loss'
                 
                 total_loss.backward()
-                
                 model.update(lr)
                 
-                if epoch % 10 == 0:
+                if epoch % report_interval == 0:
                     event_data = {
                         'epoch': epoch,
                         'loss': total_loss.data,
                         'status': 'training'
                     }
-                    self.wfile.write(f'data: {json.dumps(event_data)}\n\n'.encode())
-                    self.wfile.flush()
+                    try:
+                        self.wfile.write(f'data: {json.dumps(event_data)}\n\n'.encode())
+                        self.wfile.flush()
+                    except Exception as e:
+                        print(f"Client disconnected: {e}")
+                        return
+                
+                time.sleep(0.001)
             
             test_input = [Value(0), Value(0)]
             pred = model(test_input)
@@ -108,17 +111,21 @@ class RequestHandler(BaseHTTPRequestHandler):
                 'status': 'completed',
                 'graphData': graph_data
             }
-            self.wfile.write(f'data: {json.dumps(final_event)}\n\n'.encode())
-            self.wfile.flush()
+            
+            try:
+                self.wfile.write(f'data: {json.dumps(final_event)}\n\n'.encode())
+                self.wfile.flush()
+            except Exception as e:
+                print(f"Failed to send final data: {e}")
             
         except Exception as e:
-            pass
+            print(f"Error in stream handler: {e}")
     
     def log_message(self, format, *args):
         return
 
 
-def train_xor():
+def train_and_return():
     model = ValueMLP([2, 4, 1], activations=['sigmoid', 'sigmoid'])
     
     X = [
@@ -129,7 +136,7 @@ def train_xor():
     ]
     y = [0, 1, 1, 0]
     
-    epochs = 5000
+    epochs = 2000
     lr = 0.8
     losses = []
     
@@ -149,13 +156,20 @@ def train_xor():
         total_loss.label = 'avg_loss'
         
         total_loss.backward()
-        
         model.update(lr)
         
         if epoch % 10 == 0:
             losses.append(total_loss.data)
     
-    return model, losses, X
+    test_input = [Value(0), Value(0)]
+    pred = model(test_input)
+    graph_data = pred.get_graph_data()
+    
+    return {
+        'graphData': graph_data,
+        'losses': losses,
+        'message': 'Training completed successfully'
+    }
 
 
 def run_server():

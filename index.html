@@ -26,7 +26,6 @@
             background: rgba(255, 255, 255, 0.05);
             border-radius: 15px;
             padding: 20px;
-            backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
         button {
@@ -37,15 +36,19 @@
             border-radius: 8px;
             font-size: 1rem;
             cursor: pointer;
+            transition: all 0.3s;
         }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
         .btn-primary {
             background: linear-gradient(90deg, #00d2ff, #3a7bd5);
             color: white;
         }
+        .btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(0, 210, 255, 0.4); }
         .btn-secondary {
             background: rgba(255, 255, 255, 0.1);
             color: white;
         }
+        .btn-secondary:hover:not(:disabled) { background: rgba(255, 255, 255, 0.2); }
         .stats { margin-top: 20px; }
         .stat-item {
             display: flex;
@@ -55,6 +58,7 @@
         }
         .stat-value { color: #00d2ff; font-weight: bold; font-family: monospace; }
         .stat-value.loss { color: #ff6b6b; }
+        .stat-value.error { color: #ff4757; }
         .canvas-container {
             background: rgba(255, 255, 255, 0.05);
             border-radius: 15px;
@@ -65,6 +69,7 @@
             width: 100%;
             border-radius: 10px;
             background: #0a0a15;
+            display: block;
         }
         #logArea {
             height: 150px;
@@ -75,6 +80,8 @@
             font-family: monospace;
             font-size: 0.9rem;
         }
+        #logArea::-webkit-scrollbar { width: 6px; }
+        #logArea::-webkit-scrollbar-thumb { background: rgba(0, 210, 255, 0.5); border-radius: 3px; }
         .loss-chart {
             margin-top: 20px;
             height: 200px;
@@ -102,7 +109,18 @@
         .progress-bar {
             height: 100%;
             background: linear-gradient(90deg, #00d2ff, #3a7bd5);
+            transition: width 0.1s linear;
         }
+        .connection-status {
+            margin-top: 10px;
+            padding: 8px;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+        .status-connected { background: rgba(0, 255, 136, 0.15); color: #00ff88; }
+        .status-connecting { background: rgba(255, 217, 61, 0.15); color: #ffd93d; }
+        .status-disconnected { background: rgba(255, 71, 87, 0.15); color: #ff4757; }
     </style>
 </head>
 <body>
@@ -114,7 +132,7 @@
         
         <div class="main-content">
             <div class="control-panel">
-                <button class="btn-primary" onclick="startTraining()">开始训练</button>
+                <button class="btn-primary" id="startBtn" onclick="startTraining()">开始训练</button>
                 <button class="btn-secondary" onclick="resetGraph()">重置</button>
                 <button class="btn-secondary" onclick="highlightNodes()" id="highlightBtn" disabled>高亮节点</button>
                 
@@ -128,10 +146,16 @@
                 <div class="training-progress">
                     <div class="progress-bar" id="progressBar" style="width: 0%"></div>
                 </div>
+                
+                <div class="connection-status" id="connStatus">未连接</div>
             </div>
             
             <div class="canvas-container">
                 <canvas id="graphCanvas" width="900" height="500"></canvas>
+                <div id="canvasHint" style="text-align: center; color: #666; padding-top: 200px; position: absolute; top: 20px; left: 20px; right: 20px;">
+                    <div style="font-size: 1.2rem; margin-bottom: 10px;">点击「开始训练」按钮开始</div>
+                    <div style="font-size: 0.9rem;">训练完成后将显示计算图</div>
+                </div>
             </div>
         </div>
         
@@ -162,6 +186,9 @@
         let hoveredNodeId = null;
         let losses = [];
         let isTraining = false;
+        let eventSource = null;
+        let reconnectAttempts = 0;
+        const maxReconnectAttempts = 5;
         
         const colors = {
             input: '#00ff88',
@@ -172,6 +199,16 @@
             edgeHighlighted: '#00d2ff'
         };
         
+        function setConnectionStatus(status) {
+            const el = document.getElementById('connStatus');
+            el.textContent = {
+                'connected': '已连接',
+                'connecting': '连接中...',
+                'disconnected': '已断开'
+            }[status];
+            el.className = 'connection-status status-' + status;
+        }
+        
         function getNodeColor(node) {
             if (node.label && node.label.startsWith('x')) return colors.input;
             if (node.label && node.label.startsWith('L') && (node.label.includes('.w') || node.label.includes('.b'))) return colors.param;
@@ -180,7 +217,12 @@
         }
         
         function layoutGraph(graphData) {
-            if (!graphData || !graphData.nodes) return;
+            if (!graphData || !graphData.nodes || !graphData.nodes.length) {
+                addLog('错误: 计算图数据为空');
+                return;
+            }
+            
+            addLog(`加载计算图: ${graphData.nodes.length} 节点, ${graphData.edges?.length || 0} 边`);
             
             const layerMap = {};
             graphData.nodes.forEach(node => {
@@ -206,7 +248,9 @@
             });
             
             edges = graphData.edges || [];
-            addLog(`计算图已加载: ${nodes.length} 个节点, ${edges.length} 条边`);
+            document.getElementById('canvasHint').style.display = 'none';
+            
+            addLog(`计算图布局完成: ${nodes.length} 节点已定位`);
         }
         
         function determineLayer(node) {
@@ -321,12 +365,18 @@
         }
         
         function resetGraph() {
+            if (eventSource) {
+                eventSource.close();
+                eventSource = null;
+            }
+            
             nodes = [];
             edges = [];
             losses = [];
             highlightedNodeIds.clear();
             hoveredNodeId = null;
             isTraining = false;
+            reconnectAttempts = 0;
             
             document.getElementById('epoch').textContent = '0';
             document.getElementById('loss').textContent = '0.0000';
@@ -334,7 +384,11 @@
             document.getElementById('edgeCount').textContent = '0';
             document.getElementById('progressBar').style.width = '0%';
             document.getElementById('highlightBtn').disabled = true;
+            document.getElementById('startBtn').disabled = false;
             document.getElementById('logArea').innerHTML = '';
+            document.getElementById('canvasHint').style.display = 'block';
+            setConnectionStatus('disconnected');
+            
             drawLossChart();
         }
         
@@ -369,17 +423,25 @@
             lossCtx.stroke();
         }
         
-        async function startTraining() {
-            if (isTraining) return;
-            isTraining = true;
+        function connectStream() {
+            if (reconnectAttempts >= maxReconnectAttempts) {
+                addLog(`达到最大重连次数 (${maxReconnectAttempts})，停止尝试`);
+                isTraining = false;
+                document.getElementById('startBtn').disabled = false;
+                setConnectionStatus('disconnected');
+                return;
+            }
             
-            document.getElementById('highlightBtn').disabled = true;
-            highlightedNodeIds.clear();
-            losses = [];
+            setConnectionStatus('connecting');
+            addLog(`建立连接... (尝试 ${reconnectAttempts + 1}/${maxReconnectAttempts})`);
             
-            addLog('开始训练异或门网络...');
+            eventSource = new EventSource('/train-stream');
             
-            const eventSource = new EventSource('/train-stream');
+            eventSource.onopen = function() {
+                addLog('连接已建立');
+                setConnectionStatus('connected');
+                reconnectAttempts = 0;
+            };
             
             eventSource.onmessage = function(event) {
                 try {
@@ -388,10 +450,10 @@
                     if (data.status === 'training') {
                         document.getElementById('epoch').textContent = data.epoch;
                         document.getElementById('loss').textContent = data.loss.toFixed(6);
-                        document.getElementById('progressBar').style.width = (data.epoch / 5000 * 100) + '%';
+                        document.getElementById('progressBar').style.width = (data.epoch / 2000 * 100) + '%';
                         
                         losses.push(data.loss);
-                        if (losses.length > 500) losses.shift();
+                        if (losses.length > 100) losses.shift();
                         drawLossChart();
                     } else if (data.status === 'completed') {
                         addLog('训练完成，正在绘制计算图...');
@@ -406,7 +468,9 @@
                         addLog(`计算图节点数: ${nodes.length}`);
                         
                         isTraining = false;
+                        setConnectionStatus('disconnected');
                         eventSource.close();
+                        eventSource = null;
                     }
                 } catch (e) {
                     addLog('数据解析错误: ' + e.message);
@@ -414,10 +478,40 @@
             };
             
             eventSource.onerror = function(error) {
-                addLog('训练连接中断');
-                isTraining = false;
+                addLog(`连接错误: ${error?.message || '未知错误'}`);
                 eventSource.close();
+                eventSource = null;
+                
+                if (isTraining && reconnectAttempts < maxReconnectAttempts) {
+                    reconnectAttempts++;
+                    addLog(`尝试重新连接...`);
+                    setTimeout(connectStream, 1000 * Math.pow(2, reconnectAttempts - 1));
+                } else {
+                    isTraining = false;
+                    document.getElementById('startBtn').disabled = false;
+                    setConnectionStatus('disconnected');
+                    addLog('连接已断开');
+                }
             };
+        }
+        
+        function startTraining() {
+            if (isTraining) return;
+            
+            isTraining = true;
+            reconnectAttempts = 0;
+            
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('highlightBtn').disabled = true;
+            highlightedNodeIds.clear();
+            losses = [];
+            nodes = [];
+            edges = [];
+            
+            document.getElementById('canvasHint').style.display = 'none';
+            addLog('开始训练异或门网络...');
+            
+            connectStream();
         }
         
         canvas.addEventListener('mousemove', (event) => {
@@ -447,8 +541,15 @@
         function showNodeInfo(node, event) {
             const info = document.getElementById('nodeInfo');
             info.style.display = 'block';
-            info.style.left = (event.clientX + 15) + 'px';
-            info.style.top = (event.clientY + 15) + 'px';
+            
+            let infoX = event.clientX + 15;
+            let infoY = event.clientY + 15;
+            
+            if (infoX + 220 > window.innerWidth) infoX = event.clientX - 235;
+            if (infoY + 100 > window.innerHeight) infoY = event.clientY - 115;
+            
+            info.style.left = infoX + 'px';
+            info.style.top = infoY + 'px';
             
             document.getElementById('infoLabel').textContent = node.label || '无标签';
             document.getElementById('infoData').textContent = node.data !== undefined ? node.data.toFixed(4) : 'N/A';
@@ -456,6 +557,7 @@
             document.getElementById('infoOp').textContent = node.op || '无';
         }
         
+        setConnectionStatus('disconnected');
         drawGraph();
     </script>
 </body>
