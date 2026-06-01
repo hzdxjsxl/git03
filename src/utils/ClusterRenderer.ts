@@ -1,6 +1,17 @@
 import type { Point, Cluster } from '../../shared/types';
 import { CLUSTER_COLORS } from '../../shared/types';
 
+export interface HoverInfo {
+  type: 'point' | 'centroid' | null;
+  point?: Point;
+  centroid?: Point;
+  label: number;
+  clusterLabel: number;
+  clusterCount: number;
+  clusterColor: string;
+  distance?: number;
+}
+
 interface RenderPoint extends Point {
   opacity: number;
   birthTime: number;
@@ -15,6 +26,7 @@ export class ClusterRenderer {
   private points: RenderPoint[] = [];
   private labels: number[] = [];
   private centroids: Point[] = [];
+  private clusterCounts: number[] = [];
   private animationId: number | null = null;
 
   constructor(canvas: HTMLCanvasElement) {
@@ -170,7 +182,7 @@ export class ClusterRenderer {
     this.ctx.setLineDash([]);
   }
 
-  render(points: Point[], labels: number[], centroids: Point[]) {
+  render(points: Point[], labels: number[], centroids: Point[], clusterCounts: number[] = []) {
     const now = Date.now();
     const newPoints: RenderPoint[] = points.map((p, i) => ({
       ...p,
@@ -181,6 +193,92 @@ export class ClusterRenderer {
     this.points = newPoints;
     this.labels = labels;
     this.centroids = centroids;
+    this.clusterCounts = clusterCounts;
+  }
+
+  private getScaleAndOffset() {
+    const scaleX = this.width / 1000;
+    const scaleY = this.height / 600;
+    const scale = Math.min(scaleX, scaleY);
+    const offsetX = (this.width - 1000 * scale) / 2;
+    const offsetY = (this.height - 600 * scale) / 2;
+    return { scale, offsetX, offsetY };
+  }
+
+  private screenToData(screenX: number, screenY: number): Point {
+    const { scale, offsetX, offsetY } = this.getScaleAndOffset();
+    return {
+      x: Math.max(0, Math.min(1000, (screenX - offsetX) / scale)),
+      y: Math.max(0, Math.min(600, (screenY - offsetY) / scale)),
+    };
+  }
+
+  getHoverInfo(screenX: number, screenY: number): HoverInfo {
+    const dataPoint = this.screenToData(screenX, screenY);
+    const { scale } = this.getScaleAndOffset();
+    const pointRadius = 3 * scale + 2;
+    const centroidRadius = 12 * scale + 4;
+
+    let nearestCentroidDist = Infinity;
+    let nearestCentroidIdx = -1;
+    for (let i = 0; i < this.centroids.length; i++) {
+      const c = this.centroids[i];
+      const dx = dataPoint.x - c.x;
+      const dy = dataPoint.y - c.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < nearestCentroidDist) {
+        nearestCentroidDist = dist;
+        nearestCentroidIdx = i;
+      }
+    }
+
+    if (nearestCentroidIdx >= 0 && nearestCentroidDist * scale < centroidRadius) {
+      const count = Math.max(0, Math.floor(this.clusterCounts[nearestCentroidIdx] || 0));
+      return {
+        type: 'centroid',
+        centroid: { ...this.centroids[nearestCentroidIdx] },
+        label: nearestCentroidIdx,
+        clusterLabel: nearestCentroidIdx,
+        clusterCount: count,
+        clusterColor: CLUSTER_COLORS[nearestCentroidIdx % CLUSTER_COLORS.length],
+        distance: Math.abs(nearestCentroidDist),
+      };
+    }
+
+    let nearestPointDist = Infinity;
+    let nearestPointIdx = -1;
+    for (let i = 0; i < this.points.length; i++) {
+      const p = this.points[i];
+      const dx = dataPoint.x - p.x;
+      const dy = dataPoint.y - p.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < nearestPointDist) {
+        nearestPointDist = dist;
+        nearestPointIdx = i;
+      }
+    }
+
+    if (nearestPointIdx >= 0 && nearestPointDist * scale < pointRadius) {
+      const label = this.labels[nearestPointIdx] ?? 0;
+      const count = Math.max(0, Math.floor(this.clusterCounts[label] || 0));
+      return {
+        type: 'point',
+        point: { ...this.points[nearestPointIdx] },
+        label,
+        clusterLabel: label,
+        clusterCount: count,
+        clusterColor: CLUSTER_COLORS[label % CLUSTER_COLORS.length],
+        distance: Math.abs(nearestPointDist),
+      };
+    }
+
+    return {
+      type: null,
+      label: -1,
+      clusterLabel: -1,
+      clusterCount: 0,
+      clusterColor: '#666666',
+    };
   }
 
   animate() {

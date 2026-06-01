@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { DynamicClusterer } from '../utils/DynamicClusterer';
-import { ClusterRenderer } from '../utils/ClusterRenderer';
+import { ClusterRenderer, type HoverInfo } from '../utils/ClusterRenderer';
 import { ControlPanel } from '../components/ControlPanel';
 import { StatusPanel } from '../components/StatusPanel';
+import { DetailPanel } from '../components/DetailPanel';
 import type { Point } from '../../shared/types';
 
 const Home: React.FC = () => {
@@ -21,6 +22,7 @@ const Home: React.FC = () => {
   const [clusterCount, setClusterCount] = useState(0);
   const [fps, setFps] = useState(0);
   const [dataRate, setDataRate] = useState(0);
+  const [hoverInfo, setHoverInfo] = useState<HoverInfo | null>(null);
 
   const frameCountRef = useRef(0);
   const lastFpsUpdateRef = useRef(Date.now());
@@ -81,7 +83,8 @@ const Home: React.FC = () => {
               const centroids = clusters.map((c) => c.centroid);
 
               if (rendererRef.current) {
-                rendererRef.current.render(allPoints, labels, centroids);
+                const clusterCounts = clusters.map(c => Math.max(0, Math.floor(c.count)));
+                rendererRef.current.render(allPoints, labels, centroids, clusterCounts);
               }
 
               setTotalPoints(allPoints.length);
@@ -186,7 +189,23 @@ const Home: React.FC = () => {
     }
     setTotalPoints(0);
     setClusterCount(0);
+    setHoverInfo(null);
   };
+
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!canvasRef.current || !rendererRef.current) return;
+
+    const rect = canvasRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    const info = rendererRef.current.getHoverInfo(x, y);
+    setHoverInfo(info);
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    setHoverInfo(null);
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#0a1628] text-white font-mono">
@@ -219,7 +238,9 @@ const Home: React.FC = () => {
               <div className="h-[600px]">
                 <canvas
                   ref={canvasRef}
-                  className="w-full h-full"
+                  className="w-full h-full cursor-crosshair"
+                  onMouseMove={handleMouseMove}
+                  onMouseLeave={handleMouseLeave}
                 />
               </div>
             </div>
@@ -247,6 +268,8 @@ const Home: React.FC = () => {
           </div>
         </div>
       </main>
+
+      <DetailPanel hoverInfo={hoverInfo} />
 
       <footer className="fixed bottom-0 left-0 right-0 border-t border-cyan-500 border-opacity-20 p-2 bg-[#0a1628] bg-opacity-90">
         <div className="max-w-7xl mx-auto flex items-center justify-between text-xs text-gray-500">
