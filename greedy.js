@@ -2,14 +2,12 @@ export class GreedyMesher {
     constructor() {
         this.vertices = [];
         this.indices = [];
-        this.uvs = [];
         this.normals = [];
     }
 
     clear() {
         this.vertices = [];
         this.indices = [];
-        this.uvs = [];
         this.normals = [];
     }
 
@@ -22,12 +20,12 @@ export class GreedyMesher {
         const offsetZ = chunkZ * size;
 
         const faces = [
-            { axis: 1, normal: [-1, 0, 0], shift: [-1, 0, 0] },
-            { axis: 1, normal: [1, 0, 0], shift: [1, 0, 0] },
-            { axis: 2, normal: [0, -1, 0], shift: [0, -1, 0] },
-            { axis: 2, normal: [0, 1, 0], shift: [0, 1, 0] },
-            { axis: 3, normal: [0, 0, -1], shift: [0, 0, -1] },
-            { axis: 3, normal: [0, 0, 1], shift: [0, 0, 1] }
+            { axis: 0, normal: [-1, 0, 0], shift: [-1, 0, 0] },
+            { axis: 0, normal: [1, 0, 0], shift: [1, 0, 0] },
+            { axis: 1, normal: [0, -1, 0], shift: [0, -1, 0] },
+            { axis: 1, normal: [0, 1, 0], shift: [0, 1, 0] },
+            { axis: 2, normal: [0, 0, -1], shift: [0, 0, -1] },
+            { axis: 2, normal: [0, 0, 1], shift: [0, 0, 1] }
         ];
 
         for (const face of faces) {
@@ -37,7 +35,6 @@ export class GreedyMesher {
         return {
             vertices: new Float32Array(this.vertices),
             indices: new Uint32Array(this.indices),
-            uvs: new Float32Array(this.uvs),
             normals: new Float32Array(this.normals)
         };
     }
@@ -45,35 +42,24 @@ export class GreedyMesher {
     meshFace(voxels, size, face, offsetX, offsetZ) {
         const { axis, normal, shift } = face;
         const [sx, sy, sz] = shift;
-        const [nx, ny, nz] = normal;
 
         const mask = new Uint8Array(size * size);
         const pos = [0, 0, 0];
 
+        const otherAxis1 = (axis + 1) % 3;
+        const otherAxis2 = (axis + 2) % 3;
+
         for (let i = 0; i < size; i++) {
             for (let j = 0; j < size; j++) {
-                if (axis === 1) {
-                    pos[0] = -1;
-                    pos[1] = i;
-                    pos[2] = j;
-                } else if (axis === 2) {
-                    pos[0] = i;
-                    pos[1] = -1;
-                    pos[2] = j;
-                } else {
-                    pos[0] = i;
-                    pos[1] = j;
-                    pos[2] = -1;
-                }
+                pos[axis] = -1;
+                pos[otherAxis1] = i;
+                pos[otherAxis2] = j;
 
                 let filled = false;
-                let nextFilled = false;
 
                 for (let d = 0; d <= size; d++) {
                     const p0 = this.getVoxel(voxels, size, pos[0], pos[1], pos[2]);
-                    pos[0] += sx;
-                    pos[1] += sy;
-                    pos[2] += sz;
+                    pos[axis] += shift[axis];
                     const p1 = this.getVoxel(voxels, size, pos[0], pos[1], pos[2]);
 
                     if (!filled && p1) {
@@ -82,8 +68,6 @@ export class GreedyMesher {
                     } else if (filled && !p1) {
                         filled = false;
                     }
-
-                    nextFilled = p1;
                 }
             }
         }
@@ -94,18 +78,18 @@ export class GreedyMesher {
             while (j < size) {
                 const voxelType = mask[j * size + i];
                 if (voxelType) {
-                    const width = this.getWidth(mask, size, i, j);
-                    const height = this.getHeight(mask, size, i, j, width);
+                    const w = this.getWidth(mask, size, i, j);
+                    const h = this.getHeight(mask, size, i, j, w);
 
-                    this.addFace(i, j, width, height, voxelType, axis, normal, offsetX, offsetZ);
+                    this.addFace(axis, normal, i, j, w, h, offsetX, offsetZ);
 
-                    for (let y = 0; y < height; y++) {
-                        for (let x = 0; x < width; x++) {
+                    for (let y = 0; y < h; y++) {
+                        for (let x = 0; x < w; x++) {
                             mask[(j + y) * size + (i + x)] = 0;
                         }
                     }
 
-                    j += height;
+                    j += h;
                 }
                 j++;
             }
@@ -144,10 +128,10 @@ export class GreedyMesher {
         return voxels[x + y * size + z * size * size];
     }
 
-    addFace(x, y, width, height, voxelType, axis, normal, offsetX, offsetZ) {
+    addFace(axis, normal, x, y, width, height, offsetX, offsetZ) {
         const baseIndex = this.vertices.length / 3;
 
-        if (axis === 1) {
+        if (axis === 0) {
             const px = normal[0] < 0 ? 0 : 1;
             this.vertices.push(
                 px + offsetX, y + 0.5, x + 0.5 + offsetZ,
@@ -155,13 +139,7 @@ export class GreedyMesher {
                 px + offsetX, y + width + 0.5, x + height + 0.5 + offsetZ,
                 px + offsetX, y + width + 0.5, x + 0.5 + offsetZ
             );
-            this.uvs.push(
-                0, 0,
-                0, height,
-                width, height,
-                width, 0
-            );
-        } else if (axis === 2) {
+        } else if (axis === 1) {
             const py = normal[1] < 0 ? 0 : 1;
             this.vertices.push(
                 x + 0.5, py, y + 0.5 + offsetZ,
@@ -169,25 +147,13 @@ export class GreedyMesher {
                 x + width + 0.5, py, y + height + 0.5 + offsetZ,
                 x + 0.5, py, y + height + 0.5 + offsetZ
             );
-            this.uvs.push(
-                0, 0,
-                width, 0,
-                width, height,
-                0, height
-            );
         } else {
             const pz = normal[2] < 0 ? 0 : 1;
             this.vertices.push(
-                x + 0.5, y + width + 0.5, pz + offsetZ,
+                x + 0.5, y + height + 0.5, pz + offsetZ,
                 x + 0.5, y + 0.5, pz + offsetZ,
                 x + width + 0.5, y + 0.5, pz + offsetZ,
-                x + width + 0.5, y + width + 0.5, pz + offsetZ
-            );
-            this.uvs.push(
-                0, width,
-                0, 0,
-                width, 0,
-                width, width
+                x + width + 0.5, y + height + 0.5, pz + offsetZ
             );
         }
 

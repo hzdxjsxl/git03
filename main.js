@@ -17,17 +17,18 @@ class VoxelWorld {
         this.mesher = new GreedyMesher();
         this.camera = null;
         
-        this.programs = {};
+        this.program = null;
+        this.attribLocations = {};
+        this.uniformLocations = {};
         
         this.frameCount = 0;
         this.lastFpsUpdate = 0;
         this.fps = 0;
-        
         this.visibleFaceCount = 0;
         
         this.lastTime = 0;
-        this.targetDeltaTime = 1000 / 60;
         this.accumulator = 0;
+        this.targetDeltaTime = 1000 / 60;
         
         this.init();
     }
@@ -35,9 +36,9 @@ class VoxelWorld {
     init() {
         document.addEventListener('DOMContentLoaded', () => {
             this.setupCanvas();
-            this.setupWebGL();
+            if (!this.setupWebGL()) return;
             this.setupCamera();
-            this.createProgram();
+            if (!this.createShaderProgram()) return;
             this.loadInitialChunks();
             this.startRenderLoop();
         });
@@ -49,7 +50,6 @@ class VoxelWorld {
             console.error('Canvas element not found');
             return;
         }
-        
         this.resize();
         window.addEventListener('resize', () => this.resize());
     }
@@ -58,7 +58,7 @@ class VoxelWorld {
         this.gl = this.canvas.getContext('webgl');
         if (!this.gl) {
             console.error('WebGL not supported');
-            return;
+            return false;
         }
         
         this.gl.clearColor(0.5, 0.7, 1.0, 1.0);
@@ -66,23 +66,31 @@ class VoxelWorld {
         this.gl.enable(this.gl.CULL_FACE);
         this.gl.frontFace(this.gl.CCW);
         this.gl.cullFace(this.gl.BACK);
+        this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
+        this.gl.flush();
+        
+        return true;
     }
 
     setupCamera() {
         this.camera = new Camera(this.canvas);
+        this.camera.position = { x: 0, y: 40, z: 0 };
     }
 
     resize() {
         if (!this.canvas) return;
-        this.canvas.width = window.innerWidth;
-        this.canvas.height = window.innerHeight;
+        const dpr = window.devicePixelRatio || 1;
+        this.canvas.width = window.innerWidth * dpr;
+        this.canvas.height = window.innerHeight * dpr;
+        this.canvas.style.width = `${window.innerWidth}px`;
+        this.canvas.style.height = `${window.innerHeight}px`;
         if (this.gl) {
             this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
         }
     }
 
-    createProgram() {
-        const vertexShaderSource = `
+    createShaderProgram() {
+        const vertexShader = this.createShader(`
             attribute vec3 aPosition;
             attribute vec3 aNormal;
             
@@ -98,9 +106,9 @@ class VoxelWorld {
                 vNormal = normalize(aNormal);
                 vPosition = aPosition;
             }
-        `;
+        `, this.gl.VERTEX_SHADER);
         
-        const fragmentShaderSource = `
+        const fragmentShader = this.createShader(`
             precision mediump float;
             
             varying vec3 vNormal;
@@ -126,28 +134,28 @@ class VoxelWorld {
                 
                 gl_FragColor = vec4(color * (ambient + diff), 1.0);
             }
-        `;
+        `, this.gl.FRAGMENT_SHADER);
         
-        const vertexShader = this.createShader(vertexShaderSource, this.gl.VERTEX_SHADER);
-        const fragmentShader = this.createShader(fragmentShaderSource, this.gl.FRAGMENT_SHADER);
+        if (!vertexShader || !fragmentShader) return false;
         
-        if (!vertexShader || !fragmentShader) return;
+        this.program = this.gl.createProgram();
+        this.gl.attachShader(this.program, vertexShader);
+        this.gl.attachShader(this.program, fragmentShader);
+        this.gl.linkProgram(this.program);
         
-        const program = this.gl.createProgram();
-        this.gl.attachShader(program, vertexShader);
-        this.gl.attachShader(program, fragmentShader);
-        this.gl.linkProgram(program);
-        
-        if (!this.gl.getProgramParameter(program, this.gl.LINK_STATUS)) {
-            console.error('Shader link error:', this.gl.getProgramInfoLog(program));
-            return;
+        if (!this.gl.getProgramParameter(this.program, this.gl.LINK_STATUS)) {
+            console.error('Shader link error:', this.gl.getProgramInfoLog(this.program));
+            return false;
         }
         
-        this.programs.main = program;
-        this.programs.main.aPosition = this.gl.getAttribLocation(program, 'aPosition');
-        this.programs.main.aNormal = this.gl.getAttribLocation(program, 'aNormal');
-        this.programs.main.uProjection = this.gl.getUniformLocation(program, 'uProjection');
-        this.programs.main.uView = this.gl.getUniformLocation(program, 'uView');
+        this.gl.useProgram(this.program);
+        
+        this.attribLocations.position = this.gl.getAttribLocation(this.program, 'aPosition');
+        this.attribLocations.normal = this.gl.getAttribLocation(this.program, 'aNormal');
+        this.uniformLocations.projection = this.gl.getUniformLocation(this.program, 'uProjection');
+        this.uniformLocations.view = this.gl.getUniformLocation(this.program, 'uView');
+        
+        return true;
     }
 
     createShader(source, type) {
@@ -164,20 +172,12 @@ class VoxelWorld {
     }
 
     loadInitialChunks() {
-        const cameraChunkX = 0;
-        const cameraChunkZ = 0;
-        
         for (let dx = -this.renderDistance; dx <= this.renderDistance; dx++) {
             for (let dz = -this.renderDistance; dz <= this.renderDistance; dz++) {
                 const priority = Math.abs(dx) + Math.abs(dz);
-                this.loadingQueue.push({
-                    x: cameraChunkX + dx,
-                    z: cameraChunkZ + dz,
-                    priority: priority
-                });
+                this.loadingQueue.push({ x: dx, z: dz, priority });
             }
         }
-        
         this.loadingQueue.sort((a, b) => a.priority - b.priority);
     }
 
@@ -185,11 +185,10 @@ class VoxelWorld {
         if (this.loadingQueue.length === 0 || this.isLoading) return;
         
         this.isLoading = true;
-        const itemsToLoad = Math.min(2, this.loadingQueue.length);
+        const itemsToLoad = Math.min(1, this.loadingQueue.length);
         
         for (let i = 0; i < itemsToLoad; i++) {
             if (this.loadingQueue.length === 0) break;
-            
             const item = this.loadingQueue.shift();
             this.loadChunk(item.x, item.z);
         }
@@ -285,18 +284,15 @@ class VoxelWorld {
     }
 
     render() {
-        if (!this.gl || !this.programs.main) return;
+        if (!this.gl || !this.program) return;
         
         this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
-        
-        const program = this.programs.main;
-        this.gl.useProgram(program);
         
         const projectionMatrix = this.camera.getProjectionMatrix(this.canvas.width / this.canvas.height);
         const viewMatrix = this.camera.getViewMatrix();
         
-        this.gl.uniformMatrix4fv(program.uProjection, false, projectionMatrix);
-        this.gl.uniformMatrix4fv(program.uView, false, viewMatrix);
+        this.gl.uniformMatrix4fv(this.uniformLocations.projection, false, projectionMatrix);
+        this.gl.uniformMatrix4fv(this.uniformLocations.view, false, viewMatrix);
         
         let totalFaces = 0;
         
@@ -304,12 +300,12 @@ class VoxelWorld {
             if (!chunk.mesh) return;
             
             this.gl.bindBuffer(this.gl.ARRAY_BUFFER, chunk.mesh.vertexBuffer);
-            this.gl.vertexAttribPointer(program.aPosition, 3, this.gl.FLOAT, false, 0, 0);
-            this.gl.enableVertexAttribArray(program.aPosition);
+            this.gl.vertexAttribPointer(this.attribLocations.position, 3, this.gl.FLOAT, false, 0, 0);
+            this.gl.enableVertexAttribArray(this.attribLocations.position);
             
             this.gl.bindBuffer(this.gl.ARRAY_BUFFER, chunk.mesh.normalBuffer);
-            this.gl.vertexAttribPointer(program.aNormal, 3, this.gl.FLOAT, false, 0, 0);
-            this.gl.enableVertexAttribArray(program.aNormal);
+            this.gl.vertexAttribPointer(this.attribLocations.normal, 3, this.gl.FLOAT, false, 0, 0);
+            this.gl.enableVertexAttribArray(this.attribLocations.normal);
             
             this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, chunk.mesh.indexBuffer);
             this.gl.drawElements(this.gl.TRIANGLES, chunk.mesh.indexCount, this.gl.UNSIGNED_INT, 0);
