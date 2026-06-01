@@ -13,7 +13,7 @@ export default function ControlPanel() {
   function handleStart() {
     if (phase === 'idle' && genomes.length === 0) {
       initPopulation();
-      setTimeout(() => setPhase('running'), 50);
+      setTimeout(() => setPhase('running'), 100);
     } else if (canStart) {
       setPhase('running');
     }

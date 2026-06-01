@@ -9,10 +9,11 @@ export default function StatsPanel() {
 
   useEffect(() => {
     const canvas = lineChartRef.current;
-    if (!canvas || history.length < 2) return;
+    if (!canvas || history.length < 1) return;
 
     const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
     canvas.width = rect.width * dpr;
     canvas.height = rect.height * dpr;
     const ctx = canvas.getContext('2d')!;
@@ -28,7 +29,6 @@ export default function StatsPanel() {
     ctx.fillRect(0, 0, w, h);
 
     const maxScore = Math.max(...history.map((e) => e.bestScore), 1);
-    const minScore = 0;
 
     ctx.strokeStyle = '#2d3a5233';
     ctx.lineWidth = 0.5;
@@ -51,9 +51,10 @@ export default function StatsPanel() {
 
     const bestPoints: { x: number; y: number }[] = [];
     const avgPoints: { x: number; y: number }[] = [];
+    const denom = Math.max(history.length - 1, 1);
 
     for (let i = 0; i < history.length; i++) {
-      const x = padding.left + (chartW * i) / (history.length - 1);
+      const x = padding.left + (chartW * i) / denom;
       const bestY =
         padding.top + chartH * (1 - history[i].bestScore / maxScore);
       const avgY =
@@ -71,6 +72,11 @@ export default function StatsPanel() {
       ctx.strokeStyle = '#38bdf866';
       ctx.lineWidth = 1;
       ctx.stroke();
+    } else if (avgPoints.length === 1) {
+      ctx.beginPath();
+      ctx.arc(avgPoints[0].x, avgPoints[0].y, 3, 0, Math.PI * 2);
+      ctx.fillStyle = '#38bdf866';
+      ctx.fill();
     }
 
     if (bestPoints.length > 1) {
@@ -88,14 +94,25 @@ export default function StatsPanel() {
       ctx.arc(last.x, last.y, 3, 0, Math.PI * 2);
       ctx.fillStyle = '#00e5a0';
       ctx.fill();
+    } else if (bestPoints.length === 1) {
+      ctx.beginPath();
+      ctx.arc(bestPoints[0].x, bestPoints[0].y, 3, 0, Math.PI * 2);
+      ctx.fillStyle = '#00e5a0';
+      ctx.fill();
     }
 
     ctx.font = '8px "JetBrains Mono"';
     ctx.fillStyle = '#64748b';
     ctx.textAlign = 'center';
-    for (let i = 0; i < history.length; i += Math.max(1, Math.floor(history.length / 6))) {
-      const x = padding.left + (chartW * i) / (history.length - 1);
+    const step = Math.max(1, Math.floor(history.length / 6));
+    for (let i = 0; i < history.length; i += step) {
+      const x = padding.left + (chartW * i) / denom;
       ctx.fillText(`${history[i].generation}`, x, h - 4);
+    }
+    if (history.length > 1) {
+      const lastIdx = history.length - 1;
+      const x = padding.left + (chartW * lastIdx) / denom;
+      ctx.fillText(`${history[lastIdx].generation}`, x, h - 4);
     }
   }, [history]);
 
@@ -105,6 +122,7 @@ export default function StatsPanel() {
 
     const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
     canvas.width = rect.width * dpr;
     canvas.height = rect.height * dpr;
     const ctx = canvas.getContext('2d')!;

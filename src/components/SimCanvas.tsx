@@ -3,6 +3,7 @@ import Matter from 'matter-js';
 import { useSimStore } from '../store/simStore';
 import type { SimulationConfig } from '../physics';
 import { Simulation } from '../physics';
+import type { Genome } from '../genetics';
 import { calculateFitness } from '../genetics';
 
 const SIM_CONFIG: SimulationConfig = {
@@ -16,74 +17,111 @@ export default function SimCanvas() {
   const simRef = useRef<Simulation | null>(null);
   const cameraRef = useRef({ x: 200, y: 300, zoom: 1.0 });
   const animIdRef = useRef(0);
-  const phaseRef = useRef<string>('idle');
-  const genomesRef = useRef<any[]>([]);
-  const terrainSeedRef = useRef(0);
+  const simLaunchedRef = useRef(false);
 
-  const store = useSimStore;
+  function getStore() {
+    return useSimStore.getState();
+  }
+
+  function buildSimCallbacks(sim: Simulation) {
+    return {
+      onTick: (elapsed: number) => {
+        getStore().setElapsed(elapsed);
+        getStore().setCarStates(sim.getCarStates());
+      },
+      onComplete: (inputs: Parameters<Parameters<Simulation['run']>[1]>[0]) => {
+        const results = inputs.map((input) => calculateFitness(input));
+        getStore().setFitnessResults(results);
+        getStore().setPhase('evaluating');
+      },
+    };
+  }
+
+  function createSimAndInit(genomes: Genome[], terrainSeed: number): Simulation {
+    const oldSim = simRef.current;
+    if (oldSim) oldSim.cleanup();
+
+    const sim = new Simulation({ ...SIM_CONFIG, terrainSeed });
+    simRef.current = sim;
+    simLaunchedRef.current = false;
+    sim.init(genomes);
+    return sim;
+  }
+
+  function launchSim(sim: Simulation) {
+    const { onTick, onComplete } = buildSimCallbacks(sim);
+    sim.run(onTick, onComplete);
+    simLaunchedRef.current = true;
+  }
+
+  function resetCamera() {
+    cameraRef.current = { x: 200, y: 300, zoom: 1.0 };
+  }
 
   useEffect(() => {
-    const unsub = store.subscribe((state, prev) => {
-      if (state.genomes !== prev.genomes) {
-        genomesRef.current = state.genomes;
-      }
-      if (state.terrainSeed !== prev.terrainSeed) {
-        terrainSeedRef.current = state.terrainSeed;
-      }
+    const unsub = useSimStore.subscribe((state, prev) => {
       if (state.phase !== prev.phase) {
-        phaseRef.current = state.phase;
-        onPhaseChange(state.phase);
+        handlePhaseChange(state.phase);
       }
     });
     return unsub;
   }, []);
 
-  function onPhaseChange(phase: string) {
-    const sim = simRef.current;
-    if (!sim) return;
+  function handlePhaseChange(phase: string) {
+    switch (phase) {
+      case 'idle': {
+        const { genomes, terrainSeed } = getStore();
+        if (genomes.length > 0) {
+          createSimAndInit(genomes, terrainSeed);
+        }
+        startRenderLoop();
+        break;
+      }
 
-    if (phase === 'running') {
-      if (!sim.getIsRunning() && genomesRef.current.length > 0) {
-        if (sim.getCarStates().size === 0) {
-          sim.cleanup();
-          const newSim = new Simulation({ ...SIM_CONFIG, terrainSeed: terrainSeedRef.current });
-          simRef.current = newSim;
-          newSim.init(genomesRef.current);
-          newSim.run(
-            (elapsed) => {
-              store.getState().setElapsed(elapsed);
-              store.getState().setCarStates(newSim.getCarStates());
-            },
-            (inputs) => {
-              const results = inputs.map((input) => calculateFitness(input));
-              store.getState().setFitnessResults(results);
-              store.getState().setPhase('evaluating');
-            }
-          );
-        } else {
+      case 'running': {
+        const sim = simRef.current;
+        const { genomes, terrainSeed } = getStore();
+        if (!sim || genomes.length === 0) {
+          startRenderLoop();
+          break;
+        }
+
+        if (!simLaunchedRef.current) {
+          if (sim.getCarStates().size === 0) {
+            createSimAndInit(genomes, terrainSeed);
+          }
+          launchSim(simRef.current!);
+        } else if (!sim.getIsRunning()) {
           sim.resume();
         }
+        startRenderLoop();
+        break;
       }
-      startRenderLoop();
-    } else if (phase === 'paused') {
-      sim.pause();
-    } else if (phase === 'evaluating') {
-      setTimeout(() => {
-        store.getState().runEvolution();
-        store.getState().setPhase('idle');
+
+      case 'paused': {
+        const sim = simRef.current;
+        if (sim) sim.pause();
+        break;
+      }
+
+      case 'evaluating': {
+        startRenderLoop();
         setTimeout(() => {
-          store.getState().setPhase('running');
-        }, 100);
-      }, 500);
-      startRenderLoop();
-    } else if (phase === 'idle') {
-      if (genomesRef.current.length > 0 && (sim.getCarStates().size === 0 || !sim.getIsRunning())) {
-        sim.cleanup();
-        const newSim = new Simulation({ ...SIM_CONFIG, terrainSeed: terrainSeedRef.current });
-        simRef.current = newSim;
-        newSim.init(genomesRef.current);
+          const store = getStore();
+          store.runEvolution();
+
+          const { genomes: newGenomes, terrainSeed } = store;
+          resetCamera();
+          const newSim = createSimAndInit(newGenomes, terrainSeed);
+          launchSim(newSim);
+
+          store.setPhase('running');
+        }, 600);
+        break;
       }
-      startRenderLoop();
+
+      default:
+        break;
     }
   }
 
@@ -300,7 +338,7 @@ export default function SimCanvas() {
     }
   }
 
-  function drawHUD(ctx: CanvasRenderingContext2D, w: number, h: number, states: Map<string, { x: number; isStuck: boolean }>) {
+  function drawHUD(ctx: CanvasRenderingContext2D, _w: number, _h: number, states: Map<string, { x: number; isStuck: boolean }>) {
     let maxDist = 0;
     let aliveCount = 0;
     for (const [, s] of states) {
@@ -308,34 +346,27 @@ export default function SimCanvas() {
       if (s.x > maxDist) maxDist = s.x;
     }
 
+    const { generation, elapsed } = getStore();
+    const sec = (elapsed / 1000).toFixed(1);
+
     ctx.font = '11px "JetBrains Mono"';
     ctx.fillStyle = '#00e5a088';
     ctx.fillText(`LEAD: ${maxDist.toFixed(0)}px`, 12, 20);
     ctx.fillStyle = '#38bdf888';
     ctx.fillText(`ALIVE: ${aliveCount}/${states.size}`, 12, 36);
+    ctx.fillStyle = '#ff6b3588';
+    ctx.fillText(`GEN ${generation}  ${sec}s`, 12, 52);
   }
 
   useEffect(() => {
-    simRef.current = new Simulation({ ...SIM_CONFIG, terrainSeed: 0 });
-
+    const { terrainSeed } = getStore();
+    simRef.current = new Simulation({ ...SIM_CONFIG, terrainSeed });
     startRenderLoop();
 
     return () => {
       if (animIdRef.current) cancelAnimationFrame(animIdRef.current);
       simRef.current?.cleanup();
     };
-  }, []);
-
-  useEffect(() => {
-    const handleResize = () => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const parent = canvas.parentElement;
-      if (!parent) return;
-    };
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   return (
