@@ -16,6 +16,7 @@
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
             min-height: 100vh;
             color: #fff;
+            overflow-x: hidden;
         }
         
         .container {
@@ -73,6 +74,13 @@
             font-size: 1rem;
             cursor: pointer;
             transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
         
         .btn-primary {
@@ -80,7 +88,7 @@
             color: white;
         }
         
-        .btn-primary:hover {
+        .btn-primary:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 5px 20px rgba(0, 210, 255, 0.4);
         }
@@ -90,7 +98,7 @@
             color: white;
         }
         
-        .btn-secondary:hover {
+        .btn-secondary:hover:not(:disabled) {
             background: rgba(255, 255, 255, 0.2);
         }
         
@@ -112,6 +120,11 @@
         .stat-value {
             color: #00d2ff;
             font-weight: bold;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .stat-value.loss {
+            color: #ff6b6b;
         }
         
         .canvas-container {
@@ -128,16 +141,18 @@
             width: 100%;
             border-radius: 10px;
             background: rgba(0, 0, 0, 0.2);
+            cursor: crosshair;
         }
         
         .node-legend {
             position: absolute;
             bottom: 20px;
             right: 20px;
-            background: rgba(0, 0, 0, 0.5);
+            background: rgba(0, 0, 0, 0.6);
             padding: 15px;
             border-radius: 10px;
             font-size: 0.85rem;
+            backdrop-filter: blur(10px);
         }
         
         .legend-item {
@@ -151,35 +166,41 @@
             height: 20px;
             border-radius: 50%;
             margin-right: 10px;
+            box-shadow: 0 0 10px currentColor;
         }
         
-        .legend-color.input { background: #00ff88; }
-        .legend-color.param { background: #ff6b6b; }
-        .legend-color.op { background: #ffd93d; }
-        .legend-color.output { background: #6bcb77; }
+        .legend-color.input { background: #00ff88; box-shadow: 0 0 10px #00ff88; }
+        .legend-color.param { background: #ff6b6b; box-shadow: 0 0 10px #ff6b6b; }
+        .legend-color.op { background: #ffd93d; box-shadow: 0 0 10px #ffd93d; }
+        .legend-color.output { background: #6bcb77; box-shadow: 0 0 10px #6bcb77; }
         
         .node-info {
             position: absolute;
-            background: rgba(0, 0, 0, 0.9);
+            background: rgba(0, 0, 0, 0.95);
             padding: 15px;
             border-radius: 10px;
             pointer-events: none;
             z-index: 100;
             font-size: 0.9rem;
             border: 1px solid rgba(0, 210, 255, 0.3);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            min-width: 200px;
         }
         
         .info-row {
-            margin: 5px 0;
+            margin: 8px 0;
+            display: flex;
+            justify-content: space-between;
         }
         
         .info-label {
             color: #aaa;
-            margin-right: 10px;
         }
         
         .info-value {
             color: #00d2ff;
+            font-family: 'Courier New', monospace;
         }
         
         .training-log {
@@ -192,7 +213,7 @@
         }
         
         #logArea {
-            height: 200px;
+            height: 150px;
             overflow-y: auto;
             background: rgba(0, 0, 0, 0.3);
             border-radius: 8px;
@@ -216,19 +237,6 @@
             border-radius: 3px;
         }
         
-        .highlighted {
-            animation: pulse 1s infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% {
-                filter: brightness(1);
-            }
-            50% {
-                filter: brightness(1.5);
-            }
-        }
-        
         .loss-chart {
             margin-top: 20px;
             height: 200px;
@@ -245,6 +253,36 @@
             font-size: 0.9rem;
             color: #aaa;
         }
+        
+        #lossChart {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .training-progress {
+            margin-top: 15px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #00d2ff, #3a7bd5);
+            border-radius: 2px;
+            transition: width 0.1s linear;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.05); }
+        }
+        
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 5px currentColor, 0 0 10px currentColor; }
+            50% { box-shadow: 0 0 15px currentColor, 0 0 25px currentColor, 0 0 35px currentColor; }
+        }
     </style>
 </head>
 <body>
@@ -257,9 +295,9 @@
         <div class="main-content">
             <div class="control-panel">
                 <div class="panel-title">训练控制</div>
-                <button class="btn-primary" onclick="startTraining()">开始训练</button>
+                <button class="btn-primary" id="startBtn" onclick="startTraining()">开始训练</button>
                 <button class="btn-secondary" onclick="resetGraph()">重置图</button>
-                <button class="btn-secondary" onclick="highlightNodes()">高亮节点</button>
+                <button class="btn-secondary" id="highlightBtn" onclick="highlightNodes()" disabled>高亮节点</button>
                 
                 <div class="stats">
                     <div class="panel-title">训练统计</div>
@@ -269,7 +307,7 @@
                     </div>
                     <div class="stat-item">
                         <span class="stat-label">当前损失</span>
-                        <span class="stat-value" id="loss">0.0000</span>
+                        <span class="stat-value loss" id="loss">0.0000</span>
                     </div>
                     <div class="stat-item">
                         <span class="stat-label">节点数</span>
@@ -279,6 +317,10 @@
                         <span class="stat-label">边数</span>
                         <span class="stat-value" id="edgeCount">0</span>
                     </div>
+                </div>
+                
+                <div class="training-progress">
+                    <div class="progress-bar" id="progressBar" style="width: 0%"></div>
                 </div>
             </div>
             
@@ -343,20 +385,26 @@
         const logArea = document.getElementById('logArea');
         const lossChart = document.getElementById('lossChart');
         const lossCtx = lossChart.getContext('2d');
+        const startBtn = document.getElementById('startBtn');
+        const highlightBtn = document.getElementById('highlightBtn');
         
         let graphData = null;
         let nodes = [];
         let edges = [];
         let highlightedNodeIds = new Set();
+        let hoveredNodeId = null;
         let losses = [];
         let animationId = null;
+        let isTraining = false;
+        let eventSource = null;
         
         const colors = {
             input: '#00ff88',
             param: '#ff6b6b',
             op: '#ffd93d',
             output: '#6bcb77',
-            edge: 'rgba(255, 255, 255, 0.3)'
+            edge: 'rgba(255, 255, 255, 0.2)',
+            edgeHighlighted: 'rgba(0, 210, 255, 0.8)'
         };
         
         function getNodeColor(node) {
@@ -369,21 +417,34 @@
         function layoutGraph() {
             if (!graphData) return;
             
-            nodes = graphData.nodes.map((node, index) => {
+            const layerMap = {};
+            graphData.nodes.forEach((node, index) => {
                 const layer = determineLayer(node);
-                const layerWidth = canvas.width / 6;
-                const layerHeight = canvas.height / 8;
+                if (!layerMap[layer]) layerMap[layer] = [];
+                layerMap[layer].push({ ...node, originalIndex: index });
+            });
+            
+            nodes = [];
+            const layerWidth = canvas.width / 6;
+            const baseY = canvas.height / 2;
+            
+            Object.keys(layerMap).sort((a, b) => parseInt(a) - parseInt(b)).forEach(layer => {
+                const layerNodes = layerMap[layer];
+                const spacing = canvas.height / (layerNodes.length + 1);
                 
-                const x = layer * layerWidth + 80;
-                const y = (index % 8) * layerHeight + 60;
-                
-                return {
-                    ...node,
-                    x: x + (Math.random() - 0.5) * 40,
-                    y: y + (Math.random() - 0.5) * 40,
-                    vx: 0,
-                    vy: 0
-                };
+                layerNodes.forEach((node, i) => {
+                    const x = parseInt(layer) * layerWidth + 100;
+                    const y = spacing * (i + 1);
+                    
+                    nodes.push({
+                        ...node,
+                        x: x,
+                        y: y,
+                        baseX: x,
+                        baseY: y,
+                        scale: 1
+                    });
+                });
             });
             
             edges = graphData.edges;
@@ -397,6 +458,18 @@
             return 2;
         }
         
+        function isNodeHighlighted(nodeId) {
+            return highlightedNodeIds.has(nodeId) || hoveredNodeId === nodeId;
+        }
+        
+        function isEdgeHighlighted(edge) {
+            if (!hoveredNodeId && highlightedNodeIds.size === 0) return false;
+            if (hoveredNodeId) {
+                return edge.from === hoveredNodeId || edge.to === hoveredNodeId;
+            }
+            return highlightedNodeIds.has(edge.from) || highlightedNodeIds.has(edge.to);
+        }
+        
         function drawGraph() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
@@ -404,25 +477,29 @@
                 const fromNode = nodes.find(n => n.id === edge.from);
                 const toNode = nodes.find(n => n.id === edge.to);
                 
-                if (fromNode && toNode) {
-                    ctx.beginPath();
-                    ctx.moveTo(fromNode.x + 20, fromNode.y);
-                    ctx.lineTo(toNode.x - 20, toNode.y);
-                    ctx.strokeStyle = colors.edge;
-                    ctx.lineWidth = 1;
-                    ctx.stroke();
-                    
-                    ctx.beginPath();
+                if (!fromNode || !toNode) return;
+                
+                const isHighlighted = isEdgeHighlighted(edge);
+                
+                ctx.beginPath();
+                ctx.moveTo(fromNode.x + 18 * fromNode.scale, fromNode.y);
+                ctx.lineTo(toNode.x - 18 * toNode.scale, toNode.y);
+                ctx.strokeStyle = isHighlighted ? colors.edgeHighlighted : colors.edge;
+                ctx.lineWidth = isHighlighted ? 4 : 1;
+                ctx.stroke();
+                
+                if (!isHighlighted) {
                     const angle = Math.atan2(toNode.y - fromNode.y, toNode.x - fromNode.x);
-                    const arrowLength = 8;
-                    ctx.moveTo(toNode.x - 20, toNode.y);
+                    const arrowLength = 6;
+                    ctx.beginPath();
+                    ctx.moveTo(toNode.x - 18 * toNode.scale, toNode.y);
                     ctx.lineTo(
-                        toNode.x - 20 - arrowLength * Math.cos(angle - Math.PI / 6),
+                        toNode.x - 18 * toNode.scale - arrowLength * Math.cos(angle - Math.PI / 6),
                         toNode.y - arrowLength * Math.sin(angle - Math.PI / 6)
                     );
-                    ctx.moveTo(toNode.x - 20, toNode.y);
+                    ctx.moveTo(toNode.x - 18 * toNode.scale, toNode.y);
                     ctx.lineTo(
-                        toNode.x - 20 - arrowLength * Math.cos(angle + Math.PI / 6),
+                        toNode.x - 18 * toNode.scale - arrowLength * Math.cos(angle + Math.PI / 6),
                         toNode.y - arrowLength * Math.sin(angle + Math.PI / 6)
                     );
                     ctx.strokeStyle = colors.edge;
@@ -433,32 +510,49 @@
             
             nodes.forEach(node => {
                 const color = getNodeColor(node);
-                const isHighlighted = highlightedNodeIds.has(node.id);
+                const isHighlighted = isNodeHighlighted(node.id);
+                const scale = isHighlighted ? 1.4 : node.scale;
+                const radius = 18 * scale;
                 
                 if (isHighlighted) {
                     ctx.beginPath();
-                    ctx.arc(node.x, node.y, 30, 0, Math.PI * 2);
-                    ctx.fillStyle = color + '40';
+                    ctx.arc(node.x, node.y, radius + 15, 0, Math.PI * 2);
+                    const gradient = ctx.createRadialGradient(node.x, node.y, radius, node.x, node.y, radius + 15);
+                    gradient.addColorStop(0, color + '40');
+                    gradient.addColorStop(1, color + '00');
+                    ctx.fillStyle = gradient;
                     ctx.fill();
                     
                     ctx.beginPath();
-                    ctx.arc(node.x, node.y, 25, 0, Math.PI * 2);
+                    ctx.arc(node.x, node.y, radius + 10, 0, Math.PI * 2);
                     ctx.strokeStyle = color;
-                    ctx.lineWidth = 3;
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([5, 5]);
                     ctx.stroke();
+                    ctx.setLineDash([]);
                 }
                 
                 ctx.beginPath();
-                ctx.arc(node.x, node.y, 18, 0, Math.PI * 2);
+                ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
+                
+                if (isHighlighted) {
+                    ctx.shadowColor = color;
+                    ctx.shadowBlur = 20;
+                }
+                
                 ctx.fillStyle = color;
                 ctx.fill();
                 
-                ctx.strokeStyle = '#fff';
-                ctx.lineWidth = 2;
+                ctx.shadowBlur = 0;
+                
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
+                ctx.strokeStyle = isHighlighted ? '#fff' : 'rgba(255, 255, 255, 0.5)';
+                ctx.lineWidth = isHighlighted ? 3 : 2;
                 ctx.stroke();
                 
                 ctx.fillStyle = '#000';
-                ctx.font = 'bold 10px Arial';
+                ctx.font = `bold ${Math.max(8, 10 * scale)}px Arial`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 
@@ -477,8 +571,22 @@
         
         function showNodeInfo(node, event) {
             nodeInfo.style.display = 'block';
-            nodeInfo.style.left = event.clientX + 15 + 'px';
-            nodeInfo.style.top = event.clientY + 15 + 'px';
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            
+            let infoX = event.clientX + 15;
+            let infoY = event.clientY + 15;
+            
+            if (infoX + 220 > window.innerWidth) {
+                infoX = event.clientX - 235;
+            }
+            if (infoY + 100 > window.innerHeight) {
+                infoY = event.clientY - 115;
+            }
+            
+            nodeInfo.style.left = infoX + 'px';
+            nodeInfo.style.top = infoY + 'px';
             
             document.getElementById('infoLabel').textContent = node.label || '无标签';
             document.getElementById('infoData').textContent = node.data !== undefined ? node.data.toFixed(4) : 'N/A';
@@ -491,6 +599,8 @@
         }
         
         function highlightNodes() {
+            if (!nodes.length) return;
+            
             highlightedNodeIds.clear();
             
             const sortedNodes = [...nodes].sort((a, b) => Math.abs(b.grad || 0) - Math.abs(a.grad || 0));
@@ -504,16 +614,27 @@
         }
         
         function resetGraph() {
+            if (eventSource) {
+                eventSource.close();
+                eventSource = null;
+            }
+            
             highlightedNodeIds.clear();
+            hoveredNodeId = null;
             graphData = null;
             nodes = [];
             edges = [];
             losses = [];
+            isTraining = false;
+            
+            startBtn.disabled = false;
+            highlightBtn.disabled = true;
             
             document.getElementById('epoch').textContent = '0';
             document.getElementById('loss').textContent = '0.0000';
             document.getElementById('nodeCount').textContent = '0';
             document.getElementById('edgeCount').textContent = '0';
+            document.getElementById('progressBar').style.width = '0%';
             
             logArea.innerHTML = '';
             drawLossChart();
@@ -552,42 +673,85 @@
             lossCtx.stroke();
             
             lossCtx.beginPath();
-            lossCtx.strokeStyle = '#ff6b6b';
-            lossCtx.lineWidth = 2;
+            lossCtx.fillStyle = '#00d2ff';
+            lossCtx.globalAlpha = 0.1;
+            lossCtx.lineTo(lossChart.width, lossChart.height - 10);
+            lossCtx.lineTo(0, lossChart.height - 10);
+            lossCtx.closePath();
+            lossCtx.fill();
+            lossCtx.globalAlpha = 1;
             
             const lastPoint = losses.length - 1;
             const lastX = (lastPoint / (losses.length - 1)) * lossChart.width;
             const lastY = lossChart.height - ((losses[lastPoint] - minLoss) / range) * (lossChart.height - 20) - 10;
-            lossCtx.arc(lastX, lastY, 5, 0, Math.PI * 2);
-            lossCtx.stroke();
+            
+            lossCtx.beginPath();
+            lossCtx.fillStyle = '#ff6b6b';
+            lossCtx.shadowColor = '#ff6b6b';
+            lossCtx.shadowBlur = 10;
+            lossCtx.arc(lastX, lastY, 6, 0, Math.PI * 2);
+            lossCtx.fill();
+            lossCtx.shadowBlur = 0;
         }
         
         async function startTraining() {
+            if (isTraining) return;
+            
+            isTraining = true;
+            startBtn.disabled = true;
+            highlightBtn.disabled = true;
+            
+            highlightedNodeIds.clear();
+            losses = [];
+            
             addLog('开始训练异或门网络...');
             
-            const response = await fetch('/train', { method: 'POST' });
-            const result = await response.json();
+            eventSource = new EventSource('/train-stream');
             
-            graphData = result.graphData;
-            losses = result.losses;
+            eventSource.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    
+                    if (data.status === 'training') {
+                        document.getElementById('epoch').textContent = data.epoch;
+                        document.getElementById('loss').textContent = data.loss.toFixed(6);
+                        document.getElementById('progressBar').style.width = (data.epoch / 5000 * 100) + '%';
+                        
+                        losses.push(data.loss);
+                        if (losses.length > 500) {
+                            losses.shift();
+                        }
+                        drawLossChart();
+                    } else if (data.status === 'completed') {
+                        graphData = data.graphData;
+                        layoutGraph();
+                        
+                        document.getElementById('nodeCount').textContent = nodes.length;
+                        document.getElementById('edgeCount').textContent = edges.length;
+                        document.getElementById('progressBar').style.width = '100%';
+                        
+                        addLog('训练完成!');
+                        addLog(`最终损失: ${losses[losses.length - 1].toFixed(6)}`);
+                        addLog(`节点数: ${nodes.length}`);
+                        
+                        highlightBtn.disabled = false;
+                        isTraining = false;
+                        
+                        eventSource.close();
+                        eventSource = null;
+                    }
+                } catch (e) {
+                    console.error('解析数据失败:', e);
+                }
+            };
             
-            layoutGraph();
-            
-            document.getElementById('nodeCount').textContent = nodes.length;
-            document.getElementById('edgeCount').textContent = edges.length;
-            
-            for (let i = 0; i < losses.length; i += 100) {
-                document.getElementById('epoch').textContent = i + 100;
-                document.getElementById('loss').textContent = losses[i].toFixed(4);
-                drawLossChart();
-                await new Promise(resolve => setTimeout(resolve, 10));
-            }
-            
-            addLog('训练完成!');
-            addLog(`最终损失: ${losses[losses.length - 1].toFixed(6)}`);
-            addLog(`节点数: ${nodes.length}`);
-            
-            highlightNodes();
+            eventSource.onerror = function(error) {
+                addLog('训练连接中断');
+                startBtn.disabled = false;
+                isTraining = false;
+                eventSource.close();
+                eventSource = null;
+            };
         }
         
         canvas.addEventListener('mousemove', (event) => {
@@ -595,21 +759,37 @@
             const x = event.clientX - rect.left;
             const y = event.clientY - rect.top;
             
+            let found = false;
             for (const node of nodes) {
                 const distance = Math.sqrt((node.x - x) ** 2 + (node.y - y) ** 2);
-                if (distance < 20) {
+                const scale = isNodeHighlighted(node.id) ? 1.4 : node.scale;
+                if (distance < 18 * scale) {
+                    hoveredNodeId = node.id;
                     showNodeInfo(node, event);
-                    return;
+                    found = true;
+                    break;
                 }
             }
             
+            if (!found) {
+                hoveredNodeId = null;
+                hideNodeInfo();
+            }
+        });
+        
+        canvas.addEventListener('mouseleave', () => {
+            hoveredNodeId = null;
             hideNodeInfo();
         });
         
-        canvas.addEventListener('mouseleave', hideNodeInfo);
-        
         window.addEventListener('load', () => {
             drawGraph();
+        });
+        
+        window.addEventListener('beforeunload', () => {
+            if (eventSource) {
+                eventSource.close();
+            }
         });
     </script>
 </body>

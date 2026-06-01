@@ -2,6 +2,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 import json
 import sys
 import os
+import threading
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -17,6 +18,8 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.end_headers()
             with open('index.html', 'rb') as f:
                 self.wfile.write(f.read())
+        elif self.path == '/train-stream':
+            self.handle_train_stream()
         else:
             self.send_response(404)
             self.end_headers()
@@ -45,6 +48,71 @@ class RequestHandler(BaseHTTPRequestHandler):
         else:
             self.send_response(404)
             self.end_headers()
+    
+    def handle_train_stream(self):
+        self.send_response(200)
+        self.send_header('Content-Type', 'text/event-stream')
+        self.send_header('Cache-Control', 'no-cache')
+        self.send_header('Connection', 'keep-alive')
+        self.end_headers()
+        
+        try:
+            model = ValueMLP([2, 4, 1], activations=['sigmoid', 'sigmoid'])
+            
+            X = [
+                [Value(0, label='x0'), Value(0, label='x1')],
+                [Value(0, label='x0'), Value(1, label='x1')],
+                [Value(1, label='x0'), Value(0, label='x1')],
+                [Value(1, label='x0'), Value(1, label='x1')]
+            ]
+            y = [0, 1, 1, 0]
+            
+            epochs = 5000
+            lr = 0.8
+            
+            for epoch in range(epochs):
+                model.zero_grad()
+                
+                total_loss = Value(0, label='total_loss')
+                
+                for i in range(4):
+                    pred = model(X[i])
+                    target = Value(y[i], label=f'y{i}')
+                    loss = (pred - target) ** 2
+                    loss.label = f'loss{i}'
+                    total_loss = total_loss + loss
+                
+                total_loss = total_loss * (1/4)
+                total_loss.label = 'avg_loss'
+                
+                total_loss.backward()
+                
+                model.update(lr)
+                
+                if epoch % 10 == 0:
+                    event_data = {
+                        'epoch': epoch,
+                        'loss': total_loss.data,
+                        'status': 'training'
+                    }
+                    self.wfile.write(f'data: {json.dumps(event_data)}\n\n'.encode())
+                    self.wfile.flush()
+            
+            test_input = [Value(0), Value(0)]
+            pred = model(test_input)
+            graph_data = pred.get_graph_data()
+            
+            final_event = {
+                'epoch': epochs,
+                'loss': 0,
+                'status': 'completed',
+                'graphData': graph_data
+            }
+            self.wfile.write(f'data: {json.dumps(final_event)}\n\n'.encode())
+            self.wfile.flush()
+            
+        except Exception as e:
+            pass
     
     def log_message(self, format, *args):
         return
