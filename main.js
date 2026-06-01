@@ -4,39 +4,58 @@ import { Camera } from './camera.js';
 
 class VoxelWorld {
     constructor() {
-        this.canvas = document.getElementById('canvas');
-        this.gl = this.canvas.getContext('webgl');
+        this.canvas = null;
+        this.gl = null;
         
         this.chunkSize = 32;
         this.renderDistance = 4;
         this.chunks = new Map();
         this.loadingQueue = [];
+        this.isLoading = false;
         
         this.terrainGenerator = new TerrainGenerator(12345);
         this.mesher = new GreedyMesher();
-        this.camera = new Camera(this.canvas);
+        this.camera = null;
         
         this.programs = {};
         
         this.frameCount = 0;
         this.lastFpsUpdate = 0;
         this.fps = 0;
-        this.frameTime = 0;
         
         this.visibleFaceCount = 0;
         
-        this.init();
-        this.resize();
-        window.addEventListener('resize', () => this.resize());
-        
-        this.lastTime = performance.now();
+        this.lastTime = 0;
         this.targetDeltaTime = 1000 / 60;
         this.accumulator = 0;
         
-        this.animate();
+        this.init();
     }
 
     init() {
+        document.addEventListener('DOMContentLoaded', () => {
+            this.setupCanvas();
+            this.setupWebGL();
+            this.setupCamera();
+            this.createProgram();
+            this.loadInitialChunks();
+            this.startRenderLoop();
+        });
+    }
+
+    setupCanvas() {
+        this.canvas = document.getElementById('canvas');
+        if (!this.canvas) {
+            console.error('Canvas element not found');
+            return;
+        }
+        
+        this.resize();
+        window.addEventListener('resize', () => this.resize());
+    }
+
+    setupWebGL() {
+        this.gl = this.canvas.getContext('webgl');
         if (!this.gl) {
             console.error('WebGL not supported');
             return;
@@ -46,9 +65,20 @@ class VoxelWorld {
         this.gl.enable(this.gl.DEPTH_TEST);
         this.gl.enable(this.gl.CULL_FACE);
         this.gl.frontFace(this.gl.CCW);
-        
-        this.createProgram();
-        this.loadInitialChunksAsync();
+        this.gl.cullFace(this.gl.BACK);
+    }
+
+    setupCamera() {
+        this.camera = new Camera(this.canvas);
+    }
+
+    resize() {
+        if (!this.canvas) return;
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+        if (this.gl) {
+            this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+        }
     }
 
     createProgram() {
@@ -133,16 +163,7 @@ class VoxelWorld {
         return shader;
     }
 
-    resize() {
-        if (!this.canvas) return;
-        this.canvas.width = window.innerWidth;
-        this.canvas.height = window.innerHeight;
-        if (this.gl) {
-            this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
-        }
-    }
-
-    loadInitialChunksAsync() {
+    loadInitialChunks() {
         const cameraChunkX = 0;
         const cameraChunkZ = 0;
         
@@ -158,44 +179,52 @@ class VoxelWorld {
         }
         
         this.loadingQueue.sort((a, b) => a.priority - b.priority);
-        this.processLoadingQueue();
     }
 
     processLoadingQueue() {
-        if (this.loadingQueue.length === 0) return;
+        if (this.loadingQueue.length === 0 || this.isLoading) return;
         
-        const item = this.loadingQueue.shift();
-        this.loadChunk(item.x, item.z);
+        this.isLoading = true;
+        const itemsToLoad = Math.min(2, this.loadingQueue.length);
         
-        setTimeout(() => {
-            this.processLoadingQueue();
-        }, 16);
+        for (let i = 0; i < itemsToLoad; i++) {
+            if (this.loadingQueue.length === 0) break;
+            
+            const item = this.loadingQueue.shift();
+            this.loadChunk(item.x, item.z);
+        }
+        
+        this.isLoading = false;
     }
 
     loadChunk(chunkX, chunkZ) {
         const key = `${chunkX},${chunkZ}`;
         if (this.chunks.has(key)) return;
         
-        const chunk = this.terrainGenerator.generateChunk(chunkX, chunkZ, this.chunkSize);
-        const meshData = this.mesher.mesh(chunk, chunkX, chunkZ);
-        
-        chunk.mesh = {
-            vertexBuffer: this.gl.createBuffer(),
-            normalBuffer: this.gl.createBuffer(),
-            indexBuffer: this.gl.createBuffer(),
-            indexCount: meshData.indices.length
-        };
-        
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, chunk.mesh.vertexBuffer);
-        this.gl.bufferData(this.gl.ARRAY_BUFFER, meshData.vertices, this.gl.STATIC_DRAW);
-        
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, chunk.mesh.normalBuffer);
-        this.gl.bufferData(this.gl.ARRAY_BUFFER, meshData.normals, this.gl.STATIC_DRAW);
-        
-        this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, chunk.mesh.indexBuffer);
-        this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, meshData.indices, this.gl.STATIC_DRAW);
-        
-        this.chunks.set(key, chunk);
+        try {
+            const chunk = this.terrainGenerator.generateChunk(chunkX, chunkZ, this.chunkSize);
+            const meshData = this.mesher.mesh(chunk, chunkX, chunkZ);
+            
+            chunk.mesh = {
+                vertexBuffer: this.gl.createBuffer(),
+                normalBuffer: this.gl.createBuffer(),
+                indexBuffer: this.gl.createBuffer(),
+                indexCount: meshData.indices.length
+            };
+            
+            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, chunk.mesh.vertexBuffer);
+            this.gl.bufferData(this.gl.ARRAY_BUFFER, meshData.vertices, this.gl.STATIC_DRAW);
+            
+            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, chunk.mesh.normalBuffer);
+            this.gl.bufferData(this.gl.ARRAY_BUFFER, meshData.normals, this.gl.STATIC_DRAW);
+            
+            this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, chunk.mesh.indexBuffer);
+            this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, meshData.indices, this.gl.STATIC_DRAW);
+            
+            this.chunks.set(key, chunk);
+        } catch (error) {
+            console.error('Failed to load chunk:', error);
+        }
     }
 
     unloadChunk(chunkX, chunkZ) {
@@ -203,15 +232,21 @@ class VoxelWorld {
         const chunk = this.chunks.get(key);
         
         if (chunk && chunk.mesh) {
-            this.gl.deleteBuffer(chunk.mesh.vertexBuffer);
-            this.gl.deleteBuffer(chunk.mesh.normalBuffer);
-            this.gl.deleteBuffer(chunk.mesh.indexBuffer);
+            try {
+                this.gl.deleteBuffer(chunk.mesh.vertexBuffer);
+                this.gl.deleteBuffer(chunk.mesh.normalBuffer);
+                this.gl.deleteBuffer(chunk.mesh.indexBuffer);
+            } catch (error) {
+                console.error('Failed to unload chunk:', error);
+            }
         }
         
         this.chunks.delete(key);
     }
 
     updateChunks() {
+        if (!this.camera) return;
+        
         const cameraChunkX = Math.floor(this.camera.position.x / this.chunkSize);
         const cameraChunkZ = Math.floor(this.camera.position.z / this.chunkSize);
         
@@ -239,13 +274,14 @@ class VoxelWorld {
             if (!this.chunks.has(key)) {
                 const [x, z] = key.split(',').map(Number);
                 const priority = Math.abs(x - cameraChunkX) + Math.abs(z - cameraChunkZ);
-                const existing = this.loadingQueue.find(item => item.x === x && item.z === z);
-                if (!existing) {
+                const exists = this.loadingQueue.some(item => item.x === x && item.z === z);
+                if (!exists) {
                     this.loadingQueue.push({ x, z, priority });
-                    this.loadingQueue.sort((a, b) => a.priority - b.priority);
                 }
             }
         });
+        
+        this.loadingQueue.sort((a, b) => a.priority - b.priority);
     }
 
     render() {
@@ -282,9 +318,12 @@ class VoxelWorld {
         });
         
         this.visibleFaceCount = totalFaces;
+        this.gl.flush();
     }
 
     updateInfo() {
+        if (!this.camera) return;
+        
         const pos = document.getElementById('pos');
         const chunkElem = document.getElementById('chunk');
         const faces = document.getElementById('faces');
@@ -309,6 +348,11 @@ class VoxelWorld {
         }
     }
 
+    startRenderLoop() {
+        this.lastTime = performance.now();
+        this.animate();
+    }
+
     animate() {
         const currentTime = performance.now();
         const deltaTime = currentTime - this.lastTime;
@@ -317,13 +361,15 @@ class VoxelWorld {
         this.accumulator += deltaTime;
         
         while (this.accumulator >= this.targetDeltaTime) {
-            this.camera.update(this.targetDeltaTime / 1000);
+            if (this.camera) {
+                this.camera.update(this.targetDeltaTime / 1000);
+            }
             this.updateChunks();
             this.accumulator -= this.targetDeltaTime;
         }
         
         this.frameCount++;
-        if (currentTime - this.lastFpsUpdate >= 500) {
+        if (currentTime - this.lastFpsUpdate >= 200) {
             this.fps = Math.round(this.frameCount * 1000 / (currentTime - this.lastFpsUpdate));
             this.frameCount = 0;
             this.lastFpsUpdate = currentTime;
@@ -331,17 +377,10 @@ class VoxelWorld {
         
         this.render();
         this.updateInfo();
-        
-        if (this.loadingQueue.length > 0) {
-            requestAnimationFrame(() => {
-                this.processLoadingQueue();
-            });
-        }
+        this.processLoadingQueue();
         
         requestAnimationFrame(() => this.animate());
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    new VoxelWorld();
-});
+new VoxelWorld();
