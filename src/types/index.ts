@@ -14,6 +14,7 @@ export interface AuctionItem {
   sellerAvatar: string;
   bidCount: number;
   viewCount: number;
+  lastBidSequence?: number;
 }
 
 export interface BidRecord {
@@ -24,6 +25,8 @@ export interface BidRecord {
   userAvatar: string;
   price: number;
   timestamp: number;
+  transactionId: string;
+  sequence: number;
 }
 
 export interface User {
@@ -42,7 +45,7 @@ export interface ToastMessage {
   duration?: number;
 }
 
-export type SSEEventType = 'new_bid' | 'auction_end' | 'price_update';
+export type SSEEventType = 'new_bid' | 'auction_end' | 'price_update' | 'time_sync';
 
 export interface SSEEvent<T = unknown> {
   type: SSEEventType;
@@ -51,11 +54,14 @@ export interface SSEEvent<T = unknown> {
 
 export interface NewBidEventData {
   auctionId: string;
+  bidId: string;
   price: number;
   userId: string;
   userName: string;
   userAvatar: string;
   timestamp: number;
+  transactionId: string;
+  sequence: number;
 }
 
 export interface AuctionEndEventData {
@@ -63,6 +69,12 @@ export interface AuctionEndEventData {
   winnerId: string;
   winnerName: string;
   finalPrice: number;
+  lastSequence: number;
+}
+
+export interface TimeSyncData {
+  serverTimestamp: number;
+  latency: number;
 }
 
 export interface CreateAuctionInput {
@@ -73,4 +85,39 @@ export interface CreateAuctionInput {
   condition: string;
   startPrice: number;
   duration: number;
+}
+
+export interface PlaceBidInput {
+  auctionId: string;
+  price: number;
+  userId: string;
+  userName: string;
+  userAvatar: string;
+  transactionId: string;
+  nonce: string;
+}
+
+export interface PlaceBidResponse {
+  success: boolean;
+  data?: {
+    bidId: string;
+    price: number;
+    timestamp: number;
+    transactionId: string;
+    sequence: number;
+  };
+  error?: string;
+  latency?: number;
+  serverTimestamp?: number;
+  requestId?: string;
+  note?: string;
+}
+
+export interface ServerTimeResponse {
+  success: boolean;
+  data: {
+    timestamp: number;
+    serverTime: number;
+    requestId: string;
+  };
 }

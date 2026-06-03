@@ -141,6 +141,7 @@ const sampleAuctions: AuctionItem[] = [
 ];
 
 sampleAuctions.forEach(auction => {
+  auction.lastBidSequence = 0;
   db.auctions.set(auction.id, auction);
   
   const bidHistory: BidRecord[] = [];
@@ -151,16 +152,21 @@ sampleAuctions.forEach(auction => {
     const randomUser = sampleUsers[Math.floor(Math.random() * sampleUsers.length)];
     const increment = Math.floor(Math.random() * 500) + 100;
     currentPrice += increment;
+    const sequence = i + 1;
     
     bidHistory.push({
-      id: generateId(),
+      id: `bid_${auction.id}_${sequence}_${generateId()}`,
       auctionId: auction.id,
       userId: randomUser.id,
       userName: randomUser.name,
       userAvatar: randomUser.avatar,
       price: currentPrice,
       timestamp: auction.startTime + Math.random() * (Date.now() - auction.startTime) * (i + 1) / bidCount,
+      transactionId: `tx_${auction.id}_${sequence}_${generateId()}`,
+      sequence,
     });
+    
+    auction.lastBidSequence = sequence;
   }
   
   bidHistory.sort((a, b) => a.timestamp - b.timestamp);

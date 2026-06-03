@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Clock, AlertTriangle } from 'lucide-react';
 import { useAuctionStore } from '../store';
 
@@ -13,6 +13,7 @@ interface TimeLeft {
   hours: number;
   minutes: number;
   seconds: number;
+  totalSeconds: number;
 }
 
 const sizeStyles = {
@@ -36,59 +37,84 @@ const sizeStyles = {
   },
 };
 
+const calculateTimeLeft = (endTime: number, serverOffset: number): TimeLeft => {
+  const now = Date.now() + serverOffset;
+  const difference = endTime - now;
+
+  if (difference <= 0) {
+    return { days: 0, hours: 0, minutes: 0, seconds: 0, totalSeconds: 0 };
+  }
+
+  const totalSeconds = Math.floor(difference / 1000);
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  return { days, hours, minutes, seconds, totalSeconds };
+};
+
 export const CountdownTimer = ({ endTime, showLabel = true, size = 'md' }: CountdownTimerProps) => {
-  const [timeLeft, setTimeLeft] = useState<TimeLeft>({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+  const [timeLeft, setTimeLeft] = useState<TimeLeft>({ days: 0, hours: 0, minutes: 0, seconds: 0, totalSeconds: 0 });
   const [isUrgent, setIsUrgent] = useState(false);
   const [isEnded, setIsEnded] = useState(false);
-  const serverTimeOffset = useAuctionStore((state) => state.serverTimeOffset);
+  
+  const serverTimeOffsetRef = useRef(0);
+  const endTimeRef = useRef(endTime);
+  const lastUpdateRef = useRef(0);
   const animationRef = useRef<number>();
-  const lastUpdateRef = useRef<number>(0);
-  const styles = sizeStyles[size];
+  const isEndedRef = useRef(false);
+  const styles = useMemo(() => sizeStyles[size], [size]);
 
-  const calculateTimeLeft = useCallback((): TimeLeft => {
-    const now = Date.now() + serverTimeOffset;
-    const difference = endTime - now;
+  useEffect(() => {
+    endTimeRef.current = endTime;
+    isEndedRef.current = false;
+    lastUpdateRef.current = 0;
+  }, [endTime]);
 
-    if (difference <= 0) {
-      return { days: 0, hours: 0, minutes: 0, seconds: 0 };
-    }
+  useEffect(() => {
+    const store = useAuctionStore.getState();
+    serverTimeOffsetRef.current = store.serverTimeOffset;
 
-    const days = Math.floor(difference / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((difference / (1000 * 60 * 60)) % 24);
-    const minutes = Math.floor((difference / 1000 / 60) % 60);
-    const seconds = Math.floor((difference / 1000) % 60);
-
-    return { days, hours, minutes, seconds };
-  }, [endTime, serverTimeOffset]);
+    const initialTimeLeft = calculateTimeLeft(endTimeRef.current, serverTimeOffsetRef.current);
+    setTimeLeft(initialTimeLeft);
+    setIsUrgent(initialTimeLeft.totalSeconds <= 60 && initialTimeLeft.totalSeconds > 0);
+    setIsEnded(initialTimeLeft.totalSeconds <= 0);
+    isEndedRef.current = initialTimeLeft.totalSeconds <= 0;
+  }, []);
 
   const updateCountdown = useCallback((timestamp: number) => {
+    if (isEndedRef.current) return;
+
     if (timestamp - lastUpdateRef.current >= 1000) {
-      const newTimeLeft = calculateTimeLeft();
+      const currentOffset = useAuctionStore.getState().serverTimeOffset;
+      serverTimeOffsetRef.current = currentOffset;
+      
+      const newTimeLeft = calculateTimeLeft(endTimeRef.current, currentOffset);
       setTimeLeft(newTimeLeft);
       lastUpdateRef.current = timestamp;
 
-      const totalSeconds = 
-        newTimeLeft.days * 86400 + 
-        newTimeLeft.hours * 3600 + 
-        newTimeLeft.minutes * 60 + 
-        newTimeLeft.seconds;
-
+      const { totalSeconds } = newTimeLeft;
       setIsUrgent(totalSeconds <= 60 && totalSeconds > 0);
-      setIsEnded(totalSeconds <= 0);
+      
+      if (totalSeconds <= 0) {
+        setIsEnded(true);
+        isEndedRef.current = true;
+        return;
+      }
     }
 
-    if (!isEnded) {
-      animationRef.current = requestAnimationFrame(updateCountdown);
-    }
-  }, [calculateTimeLeft, isEnded]);
+    animationRef.current = requestAnimationFrame(updateCountdown);
+  }, []);
 
   useEffect(() => {
     const syncTime = async () => {
       await useAuctionStore.getState().syncServerTime();
     };
-    syncTime();
 
+    syncTime();
     const interval = setInterval(syncTime, 30000);
+
     return () => clearInterval(interval);
   }, []);
 
@@ -99,6 +125,11 @@ export const CountdownTimer = ({ endTime, showLabel = true, size = 'md' }: Count
       if (!document.hidden) {
         useAuctionStore.getState().syncServerTime();
         lastUpdateRef.current = 0;
+        
+        if (animationRef.current) {
+          cancelAnimationFrame(animationRef.current);
+        }
+        animationRef.current = requestAnimationFrame(updateCountdown);
       }
     };
 
@@ -114,13 +145,16 @@ export const CountdownTimer = ({ endTime, showLabel = true, size = 'md' }: Count
 
   const padNumber = (num: number): string => num.toString().padStart(2, '0');
 
-  const TimeBlock = ({ value, label }: { value: number; label: string }) => (
+  const TimeBlock = ({ value, label, isFinal }: { value: number; label: string; isFinal?: boolean }) => (
     <div className="flex flex-col items-center">
       <div
         className={`
           ${styles.number}
-          ${isUrgent ? 'text-red-500 animate-pulse-fast' : isEnded ? 'text-dark-500' : 'text-accent-400'}
           transition-colors duration-300
+          ${isUrgent && !isFinal ? 'text-red-500 animate-pulse-fast' : ''}
+          ${isEnded ? 'text-dark-500' : ''}
+          ${!isUrgent && !isEnded ? 'text-accent-400' : ''}
+          ${isFinal ? 'text-red-500' : ''}
         `}
       >
         {padNumber(value)}
@@ -159,7 +193,7 @@ export const CountdownTimer = ({ endTime, showLabel = true, size = 'md' }: Count
         <span className={`${styles.separator} text-dark-500`}>:</span>
         <TimeBlock value={timeLeft.minutes} label="分" />
         <span className={`${styles.separator} text-dark-500`}>:</span>
-        <TimeBlock value={timeLeft.seconds} label="秒" />
+        <TimeBlock value={timeLeft.seconds} label="秒" isFinal={isUrgent} />
       </div>
     </div>
   );
