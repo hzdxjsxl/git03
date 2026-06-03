@@ -31,43 +31,65 @@ w:\ATraePro\3\
         └── app.js             # 核心逻辑
 ```
 
-## 快速开始（一键启动）
+## 快速开始（30秒启动）
 
-### Windows 系统
+### 快速测试模式（推荐，无需PyTorch）
 
-双击根目录下的 `start.bat` 即可完成所有步骤：
-1. 自动生成测试用模型权重
-2. 自动安装Python依赖包
-3. 自动启动后端服务（端口8000）
-4. 自动启动前端服务（端口8080）
+如果想快速测试前后端连通性，使用 **极简版后端**：
 
-### 手动启动
-
-**步骤1：生成模型权重**
+**终端1 - 后端（仅需 fastapi+uvicorn+numpy）：**
 ```bash
 cd backend
-python generate_demo_weights.py
+python server_simple.py
 ```
 
-**步骤2：安装依赖**
-```bash
-cd backend
-pip install -r requirements.txt
-```
-
-**步骤3：启动后端服务**
-```bash
-cd backend
-python server.py
-```
-后端服务地址：http://localhost:8000
-
-**步骤4：启动前端服务**
+**终端2 - 前端：**
 ```bash
 cd frontend
 python -m http.server 8080
 ```
-前端访问地址：http://localhost:8080
+
+**浏览器打开：** http://localhost:8080
+
+> 极简版使用简单规则模拟情绪识别，用于快速验证管道是否打通。
+
+---
+
+### 完整模型模式（需PyTorch）
+
+安装完整依赖后使用真正的深度学习模型：
+
+**终端1 - 后端：**
+```bash
+cd backend
+pip install -r requirements.txt
+python generate_demo_weights.py
+python server.py
+```
+
+**终端2 - 前端：**
+```bash
+cd frontend
+python -m http.server 8080
+```
+
+---
+
+### Windows 一键启动
+
+双击根目录下的 `start.bat` （安装完整依赖模式）
+
+---
+
+### 三种后端模式对比
+
+| 模式 | 文件 | 依赖 | 特点 |
+|------|------|------|------|
+| 极简模式 | `server_simple.py` | fastapi, uvicorn, numpy | 最快启动，用于调试连通性 |
+| 轻量模式 | `server_light.py` | + soundfile | 完整音频处理，无深度学习 |
+| 完整模式 | `server.py` | + torch, librosa | 真正的深度学习模型 |
+
+**所有模式API接口完全一致，前端代码无需修改。**
 
 ## 依赖清单
 

@@ -20,25 +20,35 @@ app = FastAPI(title=APP_TITLE, version=APP_VERSION)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:8080",
-        "http://127.0.0.1:8080",
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"]
 )
 
-model = load_model(MODEL_WEIGHTS_PATH, DEVICE)
+model = None
+model_loaded = False
+
+
+@app.on_event("startup")
+async def load_model_on_startup():
+    global model, model_loaded
+    try:
+        print(f"Loading model on {DEVICE}...")
+        model = load_model(MODEL_WEIGHTS_PATH, DEVICE)
+        model_loaded = True
+        print("Model loaded successfully!")
+    except Exception as e:
+        print(f"Error loading model: {e}")
+        model_loaded = False
 
 
 @app.get("/health")
 async def health_check():
     return {
         "status": "ok",
-        "model_loaded": True,
+        "model_loaded": model_loaded,
         "device": DEVICE,
         "emotion_labels": EMOTION_LABELS
     }
@@ -46,22 +56,37 @@ async def health_check():
 
 @app.post("/predict")
 async def predict_emotion(file: UploadFile = File(...)):
-    start_time = time.time()
+    global model, model_loaded
 
-    audio_bytes = await file.read()
+    if not model_loaded or model is None:
+        return JSONResponse(status_code=503, content={
+            "success": False,
+            "error": "Model not loaded yet, please try again later"
+        })
 
-    mel_spectrogram = process_audio_bytes(audio_bytes)
+    try:
+        start_time = time.time()
 
-    probabilities = predict(model, mel_spectrogram, DEVICE)
+        audio_bytes = await file.read()
 
-    inference_time = int((time.time() - start_time) * 1000)
+        mel_spectrogram = process_audio_bytes(audio_bytes)
 
-    return JSONResponse(content={
-        "success": True,
-        "probabilities": probabilities,
-        "emotion_labels": EMOTION_LABELS,
-        "inference_time_ms": inference_time
-    })
+        probabilities = predict(model, mel_spectrogram, DEVICE)
+
+        inference_time = int((time.time() - start_time) * 1000)
+
+        return JSONResponse(content={
+            "success": True,
+            "probabilities": probabilities,
+            "emotion_labels": EMOTION_LABELS,
+            "inference_time_ms": inference_time
+        })
+    except Exception as e:
+        print(f"Prediction error: {e}")
+        return JSONResponse(status_code=500, content={
+            "success": False,
+            "error": str(e)
+        })
 
 
 if __name__ == "__main__":
