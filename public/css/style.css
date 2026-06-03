@@ -538,11 +538,14 @@ body {
   padding: 16px 12px;
   overflow-y: auto;
   font-size: 12px;
-  display: none;
+  display: block;
 }
 
-.battle-log.visible {
-  display: block;
+.battle-log h4 {
+  margin-bottom: 8px;
+  color: #f5af19;
+  border-bottom: 1px solid #2a2a4a;
+  padding-bottom: 4px;
 }
 
 .log-entry {

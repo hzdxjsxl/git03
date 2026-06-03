@@ -52,11 +52,11 @@ function registerBattleHandlers(io, socket) {
   });
 
   socket.on('battle:playCard', (data) => {
-    const { battleId, cardUid } = data;
+    const { battleId, cardUid, targetUid } = data;
     const battle = battleModel.getBattle(battleId);
     if (!battle) return socket.emit('battle:error', { message: '战斗不存在' });
 
-    const result = battleModel.playCard(battle, playerId, cardUid);
+    const result = battleModel.playCard(battle, playerId, cardUid, targetUid);
     if (result.error) return socket.emit('battle:error', { message: result.error });
 
     broadcastBattleState(io, battle);

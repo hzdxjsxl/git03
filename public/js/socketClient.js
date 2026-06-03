@@ -41,8 +41,8 @@ const SocketClient = {
     this.socket.emit('battle:cancelMatch');
   },
 
-  playCard(battleId, cardUid) {
-    this.socket.emit('battle:playCard', { battleId, cardUid });
+  playCard(battleId, cardUid, targetUid) {
+    this.socket.emit('battle:playCard', { battleId, cardUid, targetUid });
   },
 
   attack(battleId, attackerUid, targetUid) {

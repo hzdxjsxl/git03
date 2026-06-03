@@ -2,7 +2,9 @@ const BattleClient = {
   battleId: null,
   battleState: null,
   selectedCard: null,
+  selectedAttacker: null,
   phase: 'idle',
+  needsTarget: false,
 
   init() {
     SocketClient.onBattleStart((data) => {
@@ -11,12 +13,14 @@ const BattleClient = {
       this.phase = 'playing';
       App.showPage('page-battle');
       this.render();
+      this.renderLog();
       App.notify('对战开始！', 'info');
     });
 
     SocketClient.onBattleState((data) => {
       this.battleState = data.battle;
       this.render();
+      this.renderLog();
       if (this.battleState.status === 'finished') {
         this.phase = 'ended';
         const isWinner = this.battleState.winnerId === App.playerId;
@@ -65,16 +69,35 @@ const BattleClient = {
     this.setupTargetSelection();
   },
 
+  renderLog() {
+    if (!this.battleState || !this.battleState.log) return;
+    const logEl = document.getElementById('battle-log');
+    logEl.innerHTML = '';
+    logEl.classList.add('visible');
+    for (const entry of this.battleState.log.slice(-8)) {
+      const div = document.createElement('div');
+      div.className = 'log-entry';
+      div.textContent = entry.message;
+      logEl.appendChild(div);
+    }
+    logEl.scrollTop = logEl.scrollHeight;
+  },
+
   renderField(containerId, field, side) {
     const container = document.getElementById(containerId);
     container.innerHTML = '';
     for (const card of field) {
       const el = CardManager.renderCard(card, {});
-      if (side === 'self' && card.canAttack && this.isMyTurn()) {
+      if (card.frozen) {
+        el.style.filter = 'hue-rotate(180deg)';
+        el.style.boxShadow = '0 0 10px #00f';
+      }
+      if (side === 'self' && card.canAttack && this.isMyTurn() && !card.frozen) {
         el.classList.add('can-attack');
         el.addEventListener('click', () => this.selectAttacker(card));
       }
-      if (side === 'opponent') {
+      if (side === 'opponent' && (this.selectedAttacker || this.needsTarget)) {
+        el.classList.add('targetable');
         el.addEventListener('click', () => this.selectTarget(card));
       }
       container.appendChild(el);
@@ -89,6 +112,9 @@ const BattleClient = {
       if (this.isMyTurn()) {
         if (card.cost <= (this.battleState.self.mana)) {
           el.addEventListener('click', () => this.playCard(card));
+          if (this.selectedCard && this.selectedCard.uid === card.uid) {
+            el.classList.add('selected');
+          }
         } else {
           el.style.opacity = '0.5';
         }
@@ -97,57 +123,100 @@ const BattleClient = {
     }
   },
 
+  cardNeedsTarget(card) {
+    const targetSkills = ['direct_damage', 'buff_attack', 'buff_defense', 'freeze'];
+    return targetSkills.includes(card.skill_name);
+  },
+
   playCard(card) {
     if (!this.isMyTurn()) return;
-    SocketClient.playCard(this.battleId, card.uid);
+    
+    if (this.cardNeedsTarget(card)) {
+      this.selectedCard = card;
+      this.needsTarget = true;
+      this.render();
+      App.notify('请选择目标', 'info');
+    } else {
+      SocketClient.playCard(this.battleId, card.uid);
+      this.clearSelection();
+    }
   },
 
   selectAttacker(card) {
-    this.selectedCard = card;
-    document.querySelectorAll('.self-field .game-card').forEach(el => {
-      el.classList.remove('selected');
-    });
-    document.querySelectorAll('.self-field .game-card').forEach(el => {
-      if (parseInt(el.dataset.cardUid) === card.uid) {
-        el.classList.add('selected');
-      }
-    });
-
-    document.querySelectorAll('.opponent-field .game-card').forEach(el => {
-      el.classList.add('targetable');
-    });
-    const oppHero = document.querySelector('.opponent-hero');
-    if (oppHero) oppHero.classList.add('targetable');
+    this.selectedAttacker = card;
+    this.selectedCard = null;
+    this.needsTarget = false;
+    this.render();
   },
 
   selectTarget(card) {
-    if (!this.selectedCard) return;
-    SocketClient.attack(this.battleId, this.selectedCard.uid, card.uid);
-    this.clearSelection();
+    if (this.needsTarget && this.selectedCard) {
+      const isFriendly = card.ownerId === App.playerId;
+      const friendlyBuffs = ['buff_attack', 'buff_defense'];
+      const isFriendlyBuff = friendlyBuffs.includes(this.selectedCard.skill_name);
+      
+      if (isFriendlyBuff && !isFriendly) {
+        App.notify('请选择己方随从', 'error');
+        return;
+      }
+      if (!isFriendlyBuff && isFriendly) {
+        App.notify('请选择敌方目标', 'error');
+        return;
+      }
+      
+      SocketClient.playCard(this.battleId, this.selectedCard.uid, card.uid);
+      this.clearSelection();
+    } else if (this.selectedAttacker) {
+      SocketClient.attack(this.battleId, this.selectedAttacker.uid, card.uid);
+      this.clearSelection();
+    }
   },
 
   selectHeroTarget() {
-    if (!this.selectedCard) return;
-    SocketClient.attack(this.battleId, this.selectedCard.uid, 'hero');
-    this.clearSelection();
+    if (this.needsTarget && this.selectedCard) {
+      const hostileSkills = ['direct_damage'];
+      if (!hostileSkills.includes(this.selectedCard.skill_name)) {
+        App.notify('该技能不能对英雄使用', 'error');
+        return;
+      }
+      SocketClient.playCard(this.battleId, this.selectedCard.uid, 'hero');
+      this.clearSelection();
+    } else if (this.selectedAttacker) {
+      SocketClient.attack(this.battleId, this.selectedAttacker.uid, 'hero');
+      this.clearSelection();
+    }
   },
 
   clearSelection() {
     this.selectedCard = null;
-    document.querySelectorAll('.game-card').forEach(el => {
-      el.classList.remove('selected', 'targetable');
-    });
-    document.querySelectorAll('.hero-info').forEach(el => {
-      el.classList.remove('targetable');
-    });
+    this.selectedAttacker = null;
+    this.needsTarget = false;
+    this.render();
   },
 
   setupTargetSelection() {
     const oppHero = document.querySelector('.opponent-hero');
+    const selfHero = document.querySelector('.self-hero');
+    
     if (oppHero) {
+      oppHero.classList.remove('targetable');
+      if (this.selectedAttacker || (this.needsTarget && this.selectedCard && 
+          ['direct_damage', 'freeze'].includes(this.selectedCard.skill_name))) {
+        oppHero.classList.add('targetable');
+      }
       oppHero.onclick = () => {
-        if (this.selectedCard) this.selectHeroTarget();
+        if (this.selectedAttacker || (this.needsTarget && this.selectedCard)) {
+          this.selectHeroTarget();
+        }
       };
+    }
+    
+    if (selfHero) {
+      selfHero.classList.remove('targetable');
+      if (this.needsTarget && this.selectedCard && 
+          ['buff_attack', 'buff_defense', 'heal'].includes(this.selectedCard.skill_name)) {
+        selfHero.classList.add('targetable');
+      }
     }
   },
 
@@ -161,51 +230,5 @@ const BattleClient = {
     if (this.battleId) {
       SocketClient.concede(this.battleId);
     }
-  },
-
-  resolveSkillEffect(card, context) {
-    const effects = [];
-    switch (card.skillName) {
-      case 'direct_damage':
-        effects.push({ type: 'damage', value: card.attack || 2, target: 'chosen' });
-        break;
-      case 'aoe_damage':
-        effects.push({ type: 'aoe_damage', value: Math.max(1, Math.floor(card.attack / 2)), target: 'all_enemies' });
-        break;
-      case 'heal':
-        effects.push({ type: 'heal', value: card.cost <= 2 ? 3 : 5, target: 'hero' });
-        break;
-      case 'buff_attack':
-        effects.push({ type: 'buff', stat: 'attack', value: card.cost <= 1 ? 2 : 3, target: 'chosen_ally' });
-        break;
-      case 'buff_defense':
-        effects.push({ type: 'buff', stat: 'defense', value: card.cost <= 2 ? 2 : 4, target: 'chosen_ally' });
-        break;
-      case 'draw_card':
-        effects.push({ type: 'draw', count: 2 });
-        break;
-      case 'freeze':
-        effects.push({ type: 'freeze', target: 'chosen_enemy' });
-        break;
-      case 'reflect':
-        effects.push({ type: 'reflect', value: 1 });
-        break;
-    }
-    return effects;
-  },
-
-  formatEffectLog(effects, cardName) {
-    return effects.map(e => {
-      switch (e.type) {
-        case 'damage': return `${cardName}: 对目标造成${e.value}点伤害`;
-        case 'aoe_damage': return `${cardName}: 对所有敌方造成${e.value}点伤害`;
-        case 'heal': return `${cardName}: 恢复${e.value}点生命`;
-        case 'buff': return `${cardName}: ${e.stat === 'attack' ? '攻击' : '防御'}+${e.value}`;
-        case 'draw': return `${cardName}: 抽${e.count}张牌`;
-        case 'freeze': return `${cardName}: 冻结目标`;
-        case 'reflect': return `${cardName}: 反弹${e.value}点伤害`;
-        default: return `${cardName}: 特效触发`;
-      }
-    });
   },
 };
