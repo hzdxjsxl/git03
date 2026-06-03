@@ -4,7 +4,7 @@ import { Player } from '../entities/Player';
 import { Platform } from '../entities/Platform';
 import { LaserSystem } from '../systems/LaserSystem';
 import { GrappleSystem } from '../systems/GrappleSystem';
-import { LevelData } from '../levels/LevelData';
+import { LevelData, PlatformData } from '../levels/LevelData';
 
 export interface GameConfig {
   width: number;
@@ -29,6 +29,11 @@ export class GameEngine {
   private config: GameConfig;
   private camera = { x: 0, y: 0 };
   private goalX = 0;
+  private demoMode = false;
+  private demoPlatIdx = 0;
+  private demoJumpCooldown = 0;
+  private demoGrappleCooldown = 0;
+  private levelPlatforms: PlatformData[] = [];
 
   constructor(canvas: HTMLCanvasElement, config: GameConfig) {
     this.canvas = canvas;
@@ -70,10 +75,17 @@ export class GameEngine {
     this.clearLevel();
     
     this.goalX = levelData.goalX;
+    this.levelPlatforms = levelData.platforms;
+    this.demoPlatIdx = 0;
     
     levelData.platforms.forEach((platformData) => {
       const platform = new Platform(platformData);
       this.addEntity(platform);
+
+      const gpBody = platform.getGrapplePointBody();
+      if (gpBody) {
+        Matter.Composite.add(this.engine.world, gpBody);
+      }
     });
 
     levelData.lasers.forEach((laserData) => {
@@ -212,6 +224,10 @@ export class GameEngine {
 
     this.laserSystem.update();
     this.grappleSystem.update();
+
+    if (this.demoMode) {
+      this.runDemoAI();
+    }
     
     if (this.laserSystem.checkPlayerCollision()) {
       this.handleGameOver();
@@ -306,18 +322,38 @@ export class GameEngine {
       ctx.fillText(`钩爪: ${this.grappleSystem.isAttached() ? '已连接' : '就绪'}`, 20, 65);
     }
 
+    if (this.demoMode) {
+      ctx.fillStyle = '#ffaa00';
+      ctx.fillText(`[演示模式] 目标平台: ${this.demoPlatIdx + 1}/${this.levelPlatforms.length}`, 20, 95);
+    }
+
     ctx.textAlign = 'right';
     ctx.fillStyle = '#ff3366';
-    ctx.fillText('[WASD] 移动  [鼠标] 瞄准  [左键] 发射钩爪', this.config.width - 20, 35);
+    ctx.fillText('[WASD] 移动  [鼠标] 瞄准  [左键] 发射钩爪  [T] 演示模式', this.config.width - 20, 35);
   }
 
   handleKeyDown(key: string): void {
+    if (key.toLowerCase() === 't') {
+      this.demoMode = !this.demoMode;
+      if (this.demoMode && this.player) {
+        this.demoPlatIdx = this.findNearestPlatformIdx();
+        this.player.handleKeyDown('d');
+        this.player.setEnhancedMode(true);
+      } else if (!this.demoMode && this.player) {
+        this.player.handleKeyUp('d');
+        this.player.setEnhancedMode(false);
+        this.grappleSystem.release();
+      }
+      return;
+    }
+    if (this.demoMode) return;
     if (this.player) {
       this.player.handleKeyDown(key);
     }
   }
 
   handleKeyUp(key: string): void {
+    if (this.demoMode) return;
     if (this.player) {
       this.player.handleKeyUp(key);
     }
@@ -337,6 +373,84 @@ export class GameEngine {
 
   handleMouseUp(): void {
     this.grappleSystem.release();
+  }
+
+  private findNearestPlatformIdx(): number {
+    if (!this.player || this.levelPlatforms.length === 0) return 0;
+    const px = this.player.getBody().position.x;
+    let bestIdx = 0;
+    let bestDist = Infinity;
+    for (let i = 0; i < this.levelPlatforms.length; i++) {
+      const dist = Math.abs(this.levelPlatforms[i].x - px);
+      if (dist < bestDist) {
+        bestDist = dist;
+        bestIdx = i;
+      }
+    }
+    if (bestIdx < this.levelPlatforms.length - 1 && this.levelPlatforms[bestIdx].x < px) {
+      bestIdx++;
+    }
+    return bestIdx;
+  }
+
+  private runDemoAI(): void {
+    if (!this.player) return;
+    const body = this.player.getBody();
+    const pos = body.position;
+    const vel = body.velocity;
+
+    if (this.demoJumpCooldown > 0) this.demoJumpCooldown--;
+    if (this.demoGrappleCooldown > 0) this.demoGrappleCooldown--;
+
+    const targetPlat = this.levelPlatforms[Math.min(this.demoPlatIdx, this.levelPlatforms.length - 1)];
+    const dx = targetPlat.x - pos.x;
+    const dy = targetPlat.y - pos.y;
+    const distToPlat = Math.hypot(dx, dy);
+
+    if (distToPlat < 80 && pos.y < targetPlat.y + 30) {
+      if (this.demoPlatIdx < this.levelPlatforms.length - 1) {
+        this.demoPlatIdx++;
+      }
+    }
+
+    this.player.handleKeyDown('d');
+
+    if (this.grappleSystem.isAttached()) {
+      const attachPt = this.grappleSystem.getAttachPoint();
+      if (attachPt) {
+        const swingAngle = Math.atan2(pos.y - attachPt.y, pos.x - attachPt.x);
+        if (swingAngle > 0.3 && vel.y > 2) {
+          this.grappleSystem.release();
+          this.demoGrappleCooldown = 40;
+        }
+      }
+      return;
+    }
+
+    const nextPlat = this.levelPlatforms[Math.min(this.demoPlatIdx + 1, this.levelPlatforms.length - 1)];
+    const nextDx = nextPlat.x - pos.x;
+    const nextDy = nextPlat.y - pos.y;
+
+    if (dy < -40 && this.demoJumpCooldown <= 0) {
+      this.player.handleKeyDown('w');
+      this.demoJumpCooldown = 25;
+      setTimeout(() => this.player?.handleKeyUp('w'), 60);
+    }
+
+    if (this.demoGrappleCooldown <= 0) {
+      const grappleTargetX = nextPlat.x;
+      const grappleTargetY = nextPlat.y - (nextPlat.hasGrapplePoint ? nextPlat.height / 2 + 20 : nextPlat.height / 2);
+      const grappleDist = Math.hypot(grappleTargetX - pos.x, grappleTargetY - pos.y);
+
+      if (grappleDist < this.grappleSystem.getMaxRopeLength() && nextDy < -20 && nextDx > 50) {
+        this.grappleSystem.fire(grappleTargetX, grappleTargetY);
+        this.demoGrappleCooldown = 30;
+      }
+    }
+
+    if (pos.y > 850) {
+      this.demoPlatIdx = Math.max(0, this.demoPlatIdx - 1);
+    }
   }
 
   destroy(): void {

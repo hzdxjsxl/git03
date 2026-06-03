@@ -30,6 +30,10 @@ export class GrappleSystem {
     return this.aimPosition;
   }
 
+  getMaxRopeLength(): number {
+    return this.maxRopeLength;
+  }
+
   fire(targetX: number, targetY: number): void {
     if (this.attached) return;
 

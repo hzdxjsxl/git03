@@ -16,6 +16,11 @@ export class Player extends GameEntity {
   private maxSpeed = 8;
   private isGrounded = false;
   private groundCheckTimer = 0;
+  private enhancedMode = false;
+
+  setEnhancedMode(enabled: boolean): void {
+    this.enhancedMode = enabled;
+  }
 
   constructor(config: PlayerConfig, gameEngine: GameEngine) {
     const material = getPhysicsMaterial('player');
@@ -70,11 +75,12 @@ export class Player extends GameEntity {
   }
 
   private jump(): void {
-    if (this.isGrounded) {
+    if (this.isGrounded || this.enhancedMode) {
+      const force = this.enhancedMode ? this.jumpForce * 2.5 : this.jumpForce;
       Matter.Body.applyForce(
         this.body,
         this.body.position,
-        { x: 0, y: -this.jumpForce * this.body.mass }
+        { x: 0, y: -force * this.body.mass }
       );
       this.isGrounded = false;
     }
@@ -89,28 +95,36 @@ export class Player extends GameEntity {
     }
 
     const velocity = this.body.velocity;
+    const moveMult = this.enhancedMode ? 2.5 : 1;
+    const speedLimit = this.enhancedMode ? this.maxSpeed * 2 : this.maxSpeed;
     
     if (this.keys.has('a') || this.keys.has('arrowleft')) {
-      if (velocity.x > -this.maxSpeed) {
+      if (velocity.x > -speedLimit) {
         Matter.Body.applyForce(
           this.body,
           this.body.position,
-          { x: -this.moveForce * this.body.mass, y: 0 }
+          { x: -this.moveForce * this.body.mass * moveMult, y: 0 }
         );
       }
     }
     
     if (this.keys.has('d') || this.keys.has('arrowright')) {
-      if (velocity.x < this.maxSpeed) {
+      if (velocity.x < speedLimit) {
         Matter.Body.applyForce(
           this.body,
           this.body.position,
-          { x: this.moveForce * this.body.mass, y: 0 }
+          { x: this.moveForce * this.body.mass * moveMult, y: 0 }
         );
       }
     }
 
-    if (this.body.position.y > 1000) {
+    if (this.enhancedMode && this.body.position.y > 950) {
+      Matter.Body.setPosition(this.body, {
+        x: this.body.position.x,
+        y: 300
+      });
+      Matter.Body.setVelocity(this.body, { x: this.body.velocity.x, y: 0 });
+    } else if (this.body.position.y > 1000) {
       this.gameEngine.handleGameOver();
     }
   }

@@ -1,19 +1,20 @@
 import Matter from 'matter-js';
 import { GameEngine } from '../engine/GameEngine';
-import { LaserData } from '../levels/LevelData';
+import { LaserData, LaserPhase } from '../levels/LevelData';
 
 interface Laser {
   id: string;
   data: LaserData;
-  isActive: boolean;
-  lastToggleTime: number;
+  phase: LaserPhase;
+  phaseElapsed: number;
   endPoint: { x: number; y: number };
 }
 
 export class LaserSystem {
   private gameEngine: GameEngine;
   private lasers: Laser[] = [];
-  private startTime: number = Date.now();
+  private lastUpdateTime: number = 0;
+  private started: boolean = false;
 
   constructor(gameEngine: GameEngine) {
     this.gameEngine = gameEngine;
@@ -26,30 +27,75 @@ export class LaserSystem {
       y: data.y + Math.sin(angleRad) * data.length
     };
 
+    const cycleTotal = data.inactiveTime + data.warningTime + data.activeTime;
+    let initialPhase: LaserPhase = 'inactive';
+    let initialElapsed = data.offsetTime % cycleTotal;
+
+    if (initialElapsed < data.inactiveTime) {
+      initialPhase = 'inactive';
+    } else if (initialElapsed < data.inactiveTime + data.warningTime) {
+      initialPhase = 'warning';
+      initialElapsed -= data.inactiveTime;
+    } else {
+      initialPhase = 'active';
+      initialElapsed -= data.inactiveTime + data.warningTime;
+    }
+
     this.lasers.push({
       id: `laser_${Date.now()}_${Math.random()}`,
       data,
-      isActive: false,
-      lastToggleTime: data.offsetTime,
+      phase: initialPhase,
+      phaseElapsed: initialElapsed,
       endPoint
     });
   }
 
   clear(): void {
     this.lasers = [];
-    this.startTime = Date.now();
+    this.started = false;
   }
 
   update(): void {
-    const currentTime = Date.now() - this.startTime;
+    const now = Date.now();
+    if (!this.started) {
+      this.lastUpdateTime = now;
+      this.started = true;
+      return;
+    }
 
-    this.lasers.forEach((laser) => {
-      const cycleTime = laser.data.cycleTime;
-      const halfCycle = cycleTime / 2;
-      const timeInCycle = (currentTime + laser.data.offsetTime) % cycleTime;
-      
-      laser.isActive = timeInCycle < halfCycle;
-    });
+    const delta = now - this.lastUpdateTime;
+    this.lastUpdateTime = now;
+
+    for (const laser of this.lasers) {
+      laser.phaseElapsed += delta;
+
+      switch (laser.phase) {
+        case 'inactive':
+          if (laser.phaseElapsed >= laser.data.inactiveTime) {
+            laser.phaseElapsed -= laser.data.inactiveTime;
+            laser.phase = 'warning';
+          }
+          break;
+
+        case 'warning':
+          if (laser.phaseElapsed >= laser.data.warningTime) {
+            laser.phaseElapsed -= laser.data.warningTime;
+            laser.phase = 'active';
+          }
+          break;
+
+        case 'active':
+          if (laser.phaseElapsed >= laser.data.activeTime) {
+            laser.phaseElapsed -= laser.data.activeTime;
+            laser.phase = 'inactive';
+          }
+          break;
+      }
+    }
+  }
+
+  private isLethal(laser: Laser): boolean {
+    return laser.phase === 'active';
   }
 
   checkPlayerCollision(): boolean {
@@ -58,10 +104,10 @@ export class LaserSystem {
 
     const playerBody = player.getBody();
     const playerPos = playerBody.position;
-    const playerRadius = 20;
+    const playerRadius = 18;
 
     for (const laser of this.lasers) {
-      if (!laser.isActive) continue;
+      if (!this.isLethal(laser)) continue;
 
       const distance = this.pointToLineDistance(
         playerPos.x,
@@ -96,7 +142,7 @@ export class LaserSystem {
 
     if (lenSq !== 0) param = dot / lenSq;
 
-    let xx, yy;
+    let xx: number, yy: number;
 
     if (param < 0) {
       xx = x1;
@@ -113,64 +159,138 @@ export class LaserSystem {
   }
 
   render(ctx: CanvasRenderingContext2D): void {
-    this.lasers.forEach((laser) => {
-      const currentTime = Date.now() - this.startTime;
-      const cycleTime = laser.data.cycleTime;
-      const halfCycle = cycleTime / 2;
-      const timeInCycle = (currentTime + laser.data.offsetTime) % cycleTime;
-      
-      const isActive = timeInCycle < halfCycle;
-      const warningTime = 500;
-      const timeUntilActive = isActive 
-        ? 0 
-        : Math.max(0, halfCycle - timeInCycle);
-      const isWarning = !isActive && timeUntilActive < warningTime;
+    for (const laser of this.lasers) {
+      this.renderLaserEmitter(ctx, laser);
+      this.renderLaserBeam(ctx, laser);
+    }
+  }
 
-      if (isWarning) {
-        const flashIntensity = Math.sin((Date.now() / 100) * Math.PI) * 0.5 + 0.5;
-        
-        ctx.strokeStyle = `rgba(255, 51, 102, ${flashIntensity * 0.5})`;
-        ctx.lineWidth = 4;
-        ctx.setLineDash([10, 10]);
+  private renderLaserEmitter(ctx: CanvasRenderingContext2D, laser: Laser): void {
+    const { x, y } = laser.data;
+    const { phase } = laser;
+
+    ctx.save();
+
+    if (phase === 'active') {
+      ctx.shadowBlur = 25;
+      ctx.shadowColor = '#ff3366';
+      ctx.fillStyle = '#ff3366';
+    } else if (phase === 'warning') {
+      const flashRate = 12;
+      const flash = Math.sin(Date.now() / (1000 / flashRate) * Math.PI) > 0;
+      ctx.shadowBlur = flash ? 15 : 5;
+      ctx.shadowColor = '#ff3366';
+      ctx.fillStyle = flash ? '#ff3366' : '#882233';
+    } else {
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = '#4a1a2a';
+    }
+
+    ctx.beginPath();
+    ctx.arc(x, y, 14, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (phase === 'active') {
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(x, y, 5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    if (phase === 'warning') {
+      const flashRate = 12;
+      const flash = Math.sin(Date.now() / (1000 / flashRate) * Math.PI) > 0;
+      if (flash) {
+        ctx.fillStyle = '#ffaaaa';
         ctx.beginPath();
-        ctx.moveTo(laser.data.x, laser.data.y);
-        ctx.lineTo(laser.endPoint.x, laser.endPoint.y);
-        ctx.stroke();
-        ctx.setLineDash([]);
+        ctx.arc(x, y, 4, 0, Math.PI * 2);
+        ctx.fill();
       }
+    }
 
-      if (isActive) {
-        ctx.shadowBlur = 30;
-        ctx.shadowColor = '#ff3366';
-        
+    ctx.restore();
+  }
+
+  private renderLaserBeam(ctx: CanvasRenderingContext2D, laser: Laser): void {
+    const { data, endPoint, phase } = laser;
+    const now = Date.now();
+
+    ctx.save();
+
+    if (phase === 'active') {
+      ctx.shadowBlur = 35;
+      ctx.shadowColor = '#ff3366';
+
+      ctx.strokeStyle = '#ff3366';
+      ctx.lineWidth = 8;
+      ctx.beginPath();
+      ctx.moveTo(data.x, data.y);
+      ctx.lineTo(endPoint.x, endPoint.y);
+      ctx.stroke();
+
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = 'rgba(255, 150, 180, 0.6)';
+      ctx.lineWidth = 16;
+      ctx.beginPath();
+      ctx.moveTo(data.x, data.y);
+      ctx.lineTo(endPoint.x, endPoint.y);
+      ctx.stroke();
+
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(data.x, data.y);
+      ctx.lineTo(endPoint.x, endPoint.y);
+      ctx.stroke();
+
+    } else if (phase === 'warning') {
+      const flashRate = 12;
+      const intensity = (Math.sin(now / (1000 / flashRate) * Math.PI) + 1) / 2;
+      const progress = laser.phaseElapsed / laser.data.warningTime;
+
+      ctx.globalAlpha = 0.15 + intensity * 0.35 * progress;
+
+      ctx.strokeStyle = '#ff3366';
+      ctx.lineWidth = 4 + intensity * 4;
+      ctx.setLineDash([8 + intensity * 12, 6]);
+      ctx.lineDashOffset = -now / 30;
+      ctx.shadowBlur = 10 + intensity * 10;
+      ctx.shadowColor = '#ff3366';
+      ctx.beginPath();
+      ctx.moveTo(data.x, data.y);
+      ctx.lineTo(endPoint.x, endPoint.y);
+      ctx.stroke();
+
+      ctx.setLineDash([]);
+      ctx.lineDashOffset = 0;
+
+      const remainingMs = laser.data.warningTime - laser.phaseElapsed;
+      if (remainingMs < 500) {
+        const urgency = 1 - remainingMs / 500;
+        ctx.globalAlpha = urgency * 0.6;
         ctx.strokeStyle = '#ff3366';
         ctx.lineWidth = 6;
         ctx.beginPath();
-        ctx.moveTo(laser.data.x, laser.data.y);
-        ctx.lineTo(laser.endPoint.x, laser.endPoint.y);
+        ctx.moveTo(data.x, data.y);
+        ctx.lineTo(endPoint.x, endPoint.y);
         ctx.stroke();
-
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(laser.data.x, laser.data.y);
-        ctx.lineTo(laser.endPoint.x, laser.endPoint.y);
-        ctx.stroke();
-
-        ctx.shadowBlur = 0;
       }
 
-      ctx.fillStyle = isActive ? '#ff3366' : '#4a1a2a';
+      ctx.globalAlpha = 1;
+
+    } else {
+      ctx.globalAlpha = 0.08;
+      ctx.strokeStyle = '#ff3366';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 8]);
       ctx.beginPath();
-      ctx.arc(laser.data.x, laser.data.y, 15, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.moveTo(data.x, data.y);
+      ctx.lineTo(endPoint.x, endPoint.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
+    }
 
-      if (isActive) {
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.arc(laser.data.x, laser.data.y, 6, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    });
+    ctx.restore();
   }
 }
