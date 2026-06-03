@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>卡牌对战</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- 登录页 -->
+    <section id="page-login" class="page active">
+      <div class="login-box">
+        <h1>⚔️ 卡牌对战</h1>
+        <p class="subtitle">多人在线回合制卡牌游戏</p>
+        <input type="text" id="login-username" placeholder="输入用户名" maxlength="20">
+        <button id="btn-login" class="btn btn-primary">进入游戏</button>
+      </div>
+    </section>
+
+    <!-- 主大厅 -->
+    <section id="page-lobby" class="page">
+      <header class="lobby-header">
+        <span id="lobby-username" class="username"></span>
+        <span id="lobby-gold" class="gold">💰 0</span>
+      </header>
+      <nav class="lobby-nav">
+        <button class="btn btn-nav active" data-tab="collection">卡牌收藏</button>
+        <button class="btn btn-nav" data-tab="decks">卡组编排</button>
+        <button class="btn btn-nav" data-tab="pack">抽卡商店</button>
+        <button class="btn btn-nav btn-battle" data-tab="battle">进入对战</button>
+      </nav>
+
+      <!-- 卡牌收藏 -->
+      <div id="tab-collection" class="tab-content active">
+        <div id="collection-grid" class="card-grid"></div>
+      </div>
+
+      <!-- 卡组编排 -->
+      <div id="tab-decks" class="tab-content">
+        <div class="deck-toolbar">
+          <input type="text" id="deck-name-input" placeholder="卡组名称" maxlength="30">
+          <button id="btn-create-deck" class="btn btn-primary">新建卡组</button>
+        </div>
+        <div id="deck-list" class="deck-list"></div>
+        <div id="deck-editor" class="deck-editor hidden">
+          <div class="deck-editor-header">
+            <h3 id="deck-editor-title">编辑卡组</h3>
+            <span id="deck-card-count">0/20</span>
+            <button id="btn-save-deck" class="btn btn-primary">保存</button>
+          </div>
+          <div id="deck-cards" class="deck-cards-list"></div>
+          <h4>可用卡牌</h4>
+          <div id="deck-available-cards" class="card-grid small"></div>
+        </div>
+      </div>
+
+      <!-- 抽卡商店 -->
+      <div id="tab-pack" class="tab-content">
+        <div class="pack-shop">
+          <div class="pack-item">
+            <div class="pack-icon">🎴</div>
+            <h3>标准卡包</h3>
+            <p>随机5张卡牌</p>
+            <p class="pack-cost">💰 50</p>
+            <button id="btn-open-pack" class="btn btn-primary">开启卡包</button>
+          </div>
+        </div>
+        <div id="pack-result" class="pack-result hidden">
+          <h3>开包结果</h3>
+          <div id="pack-cards" class="card-grid"></div>
+        </div>
+      </div>
+
+      <!-- 对战匹配 -->
+      <div id="tab-battle" class="tab-content">
+        <div id="battle-lobby">
+          <h3>选择卡组</h3>
+          <div id="battle-deck-select" class="deck-list"></div>
+          <button id="btn-matchmake" class="btn btn-battle" disabled>匹配对手</button>
+          <p id="match-status"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 战斗页面 -->
+    <section id="page-battle" class="page">
+      <div class="battle-board">
+        <div class="opponent-area">
+          <div class="hero-info opponent-hero">
+            <span class="hero-name" id="opponent-name">对手</span>
+            <span class="hero-hp" id="opponent-hp">30</span>
+            <span class="hero-mana" id="opponent-mana">0/0</span>
+            <span class="deck-count" id="opponent-deck-count">牌库: 0</span>
+            <span class="hand-count" id="opponent-hand-count">手牌: 0</span>
+          </div>
+          <div id="opponent-field" class="field opponent-field"></div>
+        </div>
+        <div class="battle-divider">
+          <span id="battle-turn-info">回合 1</span>
+        </div>
+        <div class="self-area">
+          <div id="self-field" class="field self-field"></div>
+          <div class="hero-info self-hero">
+            <span class="hero-name" id="self-name">你</span>
+            <span class="hero-hp" id="self-hp">30</span>
+            <span class="hero-mana" id="self-mana">0/0</span>
+            <span class="deck-count" id="self-deck-count">牌库: 0</span>
+          </div>
+        </div>
+        <div class="hand-area">
+          <div id="self-hand" class="hand"></div>
+          <button id="btn-end-turn" class="btn btn-end-turn">结束回合</button>
+        </div>
+      </div>
+      <div id="battle-log" class="battle-log"></div>
+    </section>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/socketClient.js"></script>
+  <script src="/js/cardManager.js"></script>
+  <script src="/js/battleClient.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>

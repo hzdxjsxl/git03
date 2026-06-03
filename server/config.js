@@ -1,0 +1,15 @@
+module.exports = {
+  PORT: process.env.PORT || 3000,
+  DB_PATH: process.env.DB_PATH || './data/game.db',
+  MAX_HAND_SIZE: 10,
+  MAX_FIELD_SIZE: 5,
+  INITIAL_HP: 30,
+  INITIAL_MANA: 1,
+  MAX_MANA: 10,
+  DECK_SIZE: 20,
+  INITIAL_DRAW: 4,
+  TURN_DRAW: 1,
+  PACK_SIZE: 5,
+  GOLD_PER_WIN: 100,
+  PACK_COST: 50,
+};
