@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>染色体交互热力图 - Chromosome Interaction Heatmap</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0a0f;
+            color: #e0e0e0;
+            overflow: hidden;
+        }
+        #container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        #canvas {
+            display: block;
+            cursor: grab;
+        }
+        #canvas:active {
+            cursor: grabbing;
+        }
+        #info-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(20, 20, 30, 0.9);
+            border: 1px solid #3a3a5a;
+            border-radius: 8px;
+            padding: 16px;
+            min-width: 240px;
+            backdrop-filter: blur(10px);
+            z-index: 100;
+        }
+        #info-panel h3 {
+            margin-bottom: 12px;
+            color: #6af;
+            font-size: 14px;
+            letter-spacing: 1px;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 6px 0;
+            font-size: 12px;
+        }
+        .info-label {
+            color: #888;
+        }
+        .info-value {
+            color: #fff;
+            font-family: monospace;
+        }
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(20, 20, 30, 0.9);
+            border: 1px solid #3a3a5a;
+            border-radius: 8px;
+            padding: 12px;
+            backdrop-filter: blur(10px);
+            z-index: 100;
+        }
+        .control-btn {
+            background: linear-gradient(135deg, #2a4a6a, #1a2a4a);
+            border: 1px solid #4a6a8a;
+            color: #fff;
+            padding: 8px 16px;
+            margin: 4px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        .control-btn:hover {
+            background: linear-gradient(135deg, #3a5a7a, #2a3a5a);
+            border-color: #6a8aaa;
+        }
+        #colorbar {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 30px;
+            height: 300px;
+            background: rgba(20, 20, 30, 0.9);
+            border: 1px solid #3a3a5a;
+            border-radius: 4px;
+            padding: 10px;
+            z-index: 100;
+        }
+        #colorbar-gradient {
+            width: 10px;
+            height: 260px;
+            margin: 10px auto;
+            border-radius: 2px;
+        }
+        #colorbar-labels {
+            position: absolute;
+            left: 35px;
+            top: 10px;
+            height: 260px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            font-size: 10px;
+            color: #888;
+        }
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #6af;
+            font-size: 18px;
+            z-index: 200;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(102, 170, 255, 0.2);
+            border-top: 3px solid #6af;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        #tooltip {
+            position: absolute;
+            background: rgba(10, 10, 20, 0.95);
+            border: 1px solid #4a6a8a;
+            border-radius: 4px;
+            padding: 8px 12px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 150;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <canvas id="canvas"></canvas>
+        
+        <div id="loading">
+            <div class="spinner"></div>
+            <div>初始化金字塔切片引擎...</div>
+        </div>
+        
+        <div id="info-panel">
+            <h3>◉ 染色体交互矩阵</h3>
+            <div class="info-row">
+                <span class="info-label">分辨率层级:</span>
+                <span class="info-value" id="level-display">0</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">缩放比例:</span>
+                <span class="info-value" id="zoom-display">100%</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">视口位置:</span>
+                <span class="info-value" id="pos-display">0, 0</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">加载切片:</span>
+                <span class="info-value" id="tile-display">0</span>
+            </div>
+        </div>
+        
+        <div id="controls">
+            <button class="control-btn" onclick="heatmap.resetView()">重置视图</button>
+            <button class="control-btn" onclick="heatmap.zoomIn()">放大</button>
+            <button class="control-btn" onclick="heatmap.zoomOut()">缩小</button>
+        </div>
+        
+        <div id="colorbar">
+            <div id="colorbar-gradient"></div>
+            <div id="colorbar-labels">
+                <span>高</span>
+                <span>中</span>
+                <span>低</span>
+            </div>
+        </div>
+        
+        <div id="tooltip"></div>
+    </div>
+
+    <script src="heatmap.js"></script>
+</body>
+</html>
