@@ -22,6 +22,8 @@ class ChromosomeHeatmap {
         this.mouseCanvasX = 0;
         this.mouseCanvasY = 0;
         this.showCrosshair = false;
+        this.tilesLoaded = 0;
+        this.tilesTotal = 0;
         
         this.animationFrame = null;
         this.needsRender = true;
@@ -99,6 +101,7 @@ class ChromosomeHeatmap {
                 this.viewY -= dy / this.scale;
                 this.lastMouseX = e.clientX;
                 this.lastMouseY = e.clientY;
+                this.updateInfoPanel();
             }
             this.updateTooltip(e);
             this.needsRender = true;
@@ -142,6 +145,7 @@ class ChromosomeHeatmap {
         this.viewX = worldX - canvasX / this.scale;
         this.viewY = worldY - canvasY / this.scale;
         
+        this.updateInfoPanel();
         this.needsRender = true;
     }
     
@@ -161,6 +165,7 @@ class ChromosomeHeatmap {
     
     resetView() {
         this.fitToView();
+        this.updateInfoPanel();
         this.needsRender = true;
     }
     
@@ -172,6 +177,7 @@ class ChromosomeHeatmap {
         
         this.viewX = this.baseSize / 2 - this.canvas.width / (2 * this.scale);
         this.viewY = this.baseSize / 2 - this.canvas.height / (2 * this.scale);
+        this.updateInfoPanel();
     }
     
     resize() {
@@ -320,26 +326,26 @@ class ChromosomeHeatmap {
         
         const maxTiles = Math.ceil((this.baseSize / levelScale) / this.tileSize);
         
-        let loadedCount = 0;
-        let totalCount = 0;
+        this.tilesLoaded = 0;
+        this.tilesTotal = 0;
         
         for (let tx = startTileX; tx <= endTileX; tx++) {
             for (let ty = startTileY; ty <= endTileY; ty++) {
                 if (tx < 0 || ty < 0 || tx >= maxTiles || ty >= maxTiles) continue;
                 
-                totalCount++;
+                this.tilesTotal++;
                 const key = `${currentLevel}_${tx}_${ty}`;
                 
                 if (this.tileCache.has(key)) {
                     this.renderTile(this.tileCache.get(key), currentLevel);
-                    loadedCount++;
+                    this.tilesLoaded++;
                 } else {
                     this.fetchTile(currentLevel, tx, ty);
                 }
             }
         }
         
-        this.updateInfoPanel(currentLevel, loadedCount, totalCount);
+        this.updateInfoPanel();
         
         if (this.showCrosshair) {
             this.drawCrosshair();
@@ -385,12 +391,13 @@ class ChromosomeHeatmap {
         this.ctx.restore();
     }
     
-    updateInfoPanel(level, loaded, total) {
+    updateInfoPanel() {
+        const level = this.getCurrentLevel();
         document.getElementById('level-display').textContent = level;
         document.getElementById('zoom-display').textContent = (this.scale * 100).toFixed(1) + '%';
         document.getElementById('pos-display').textContent = 
             `${Math.floor(this.viewX)}, ${Math.floor(this.viewY)}`;
-        document.getElementById('tile-display').textContent = `${loaded}/${total}`;
+        document.getElementById('tile-display').textContent = `${this.tilesLoaded}/${this.tilesTotal}`;
     }
     
     updateTooltip(e) {
