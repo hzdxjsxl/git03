@@ -19,6 +19,9 @@ class ChromosomeHeatmap {
         this.isDragging = false;
         this.lastMouseX = 0;
         this.lastMouseY = 0;
+        this.mouseCanvasX = 0;
+        this.mouseCanvasY = 0;
+        this.showCrosshair = false;
         
         this.animationFrame = null;
         this.needsRender = true;
@@ -85,6 +88,10 @@ class ChromosomeHeatmap {
         });
         
         window.addEventListener('mousemove', (e) => {
+            const canvasRect = this.canvas.getBoundingClientRect();
+            this.mouseCanvasX = e.clientX - canvasRect.left;
+            this.mouseCanvasY = e.clientY - canvasRect.top;
+            
             if (this.isDragging) {
                 const dx = e.clientX - this.lastMouseX;
                 const dy = e.clientY - this.lastMouseY;
@@ -92,9 +99,23 @@ class ChromosomeHeatmap {
                 this.viewY -= dy / this.scale;
                 this.lastMouseX = e.clientX;
                 this.lastMouseY = e.clientY;
-                this.needsRender = true;
             }
             this.updateTooltip(e);
+            this.needsRender = true;
+        });
+        
+        window.addEventListener('keydown', (e) => {
+            if (e.shiftKey) {
+                this.showCrosshair = true;
+                this.needsRender = true;
+            }
+        });
+        
+        window.addEventListener('keyup', (e) => {
+            if (!e.shiftKey) {
+                this.showCrosshair = false;
+                this.needsRender = true;
+            }
         });
         
         this.canvas.addEventListener('wheel', (e) => {
@@ -159,19 +180,16 @@ class ChromosomeHeatmap {
     }
     
     getCurrentLevel() {
-        const idealTileSize = this.tileSize * this.scale;
         let level = 0;
-        let tileSize = this.tileSize;
-        
-        for (let i = 0; i < this.numLevels; i++) {
-            const currentTilePixelSize = tileSize * this.scale;
-            if (currentTilePixelSize < 128) {
+        for (let i = 0; i < this.numLevels - 1; i++) {
+            const worldTileSize = this.tileSize * Math.pow(2, i);
+            const screenTileSize = worldTileSize * this.scale;
+            if (screenTileSize < 128) {
                 level = i + 1;
-                tileSize = this.tileSize;
+            } else {
+                break;
             }
-            tileSize = Math.floor(tileSize / 2);
         }
-        
         return Math.min(level, this.numLevels - 1);
     }
     
@@ -322,6 +340,49 @@ class ChromosomeHeatmap {
         }
         
         this.updateInfoPanel(currentLevel, loadedCount, totalCount);
+        
+        if (this.showCrosshair) {
+            this.drawCrosshair();
+        }
+    }
+    
+    drawCrosshair() {
+        const { width, height } = this.canvas;
+        const cx = this.mouseCanvasX;
+        const cy = this.mouseCanvasY;
+        
+        this.ctx.save();
+        this.ctx.strokeStyle = 'rgba(255, 100, 100, 0.9)';
+        this.ctx.lineWidth = 1;
+        this.ctx.setLineDash([4, 4]);
+        
+        this.ctx.beginPath();
+        this.ctx.moveTo(cx, 0);
+        this.ctx.lineTo(cx, height);
+        this.ctx.stroke();
+        
+        this.ctx.beginPath();
+        this.ctx.moveTo(0, cy);
+        this.ctx.lineTo(width, cy);
+        this.ctx.stroke();
+        
+        this.ctx.setLineDash([]);
+        this.ctx.strokeStyle = 'rgba(255, 100, 100, 1)';
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.arc(cx, cy, 8, 0, Math.PI * 2);
+        this.ctx.stroke();
+        
+        const worldX = cx / this.scale + this.viewX;
+        const worldY = cy / this.scale + this.viewY;
+        
+        this.ctx.fillStyle = 'rgba(255, 100, 100, 0.95)';
+        this.ctx.fillRect(cx + 12, cy - 28, 160, 22);
+        this.ctx.fillStyle = '#fff';
+        this.ctx.font = '12px monospace';
+        this.ctx.fillText(`(${Math.floor(worldX)}, ${Math.floor(worldY)})`, cx + 18, cy - 12);
+        
+        this.ctx.restore();
     }
     
     updateInfoPanel(level, loaded, total) {
@@ -333,26 +394,76 @@ class ChromosomeHeatmap {
     }
     
     updateTooltip(e) {
-        const rect = this.canvas.getBoundingClientRect();
-        const canvasX = e.clientX - rect.left;
-        const canvasY = e.clientY - rect.top;
+        const canvasRect = this.canvas.getBoundingClientRect();
         
-        const worldX = Math.floor(canvasX / this.scale + this.viewX);
-        const worldY = Math.floor(canvasY / this.scale + this.viewY);
+        const canvasX = e.clientX - canvasRect.left;
+        const canvasY = e.clientY - canvasRect.top;
+        
+        const worldX = canvasX / this.scale + this.viewX;
+        const worldY = canvasY / this.scale + this.viewY;
+        
+        const worldXInt = Math.floor(worldX);
+        const worldYInt = Math.floor(worldY);
         
         const tooltip = document.getElementById('tooltip');
         
-        if (worldX >= 0 && worldX < this.baseSize && worldY >= 0 && worldY < this.baseSize) {
+        if (worldXInt >= 0 && worldXInt < this.baseSize && worldYInt >= 0 && worldYInt < this.baseSize) {
             tooltip.style.display = 'block';
-            tooltip.style.left = (e.clientX + 15) + 'px';
-            tooltip.style.top = (e.clientY + 15) + 'px';
+            
+            const tooltipOffsetX = 18;
+            const tooltipOffsetY = 18;
+            
+            let tooltipLeft = e.clientX + tooltipOffsetX;
+            let tooltipTop = e.clientY + tooltipOffsetY;
+            
+            if (tooltipLeft + 200 > window.innerWidth) {
+                tooltipLeft = e.clientX - tooltipOffsetX - 200;
+            }
+            if (tooltipTop + 60 > window.innerHeight) {
+                tooltipTop = e.clientY - tooltipOffsetY - 60;
+            }
+            
+            tooltip.style.left = tooltipLeft + 'px';
+            tooltip.style.top = tooltipTop + 'px';
+            
+            const interactionValue = this.getInteractionValue(worldXInt, worldYInt);
+            
             tooltip.innerHTML = `
-                <div><strong>位置:</strong> ${worldX}, ${worldY}</div>
-                <div><strong>基因座:</strong> Chr1:${worldX * 1000}-${(worldX + 1) * 1000}</div>
+                <div style="margin-bottom:4px;"><strong>基因座坐标</strong></div>
+                <div style="color:#6af;">Chr1: ${worldXInt.toLocaleString()} - ${(worldXInt + 1).toLocaleString()}</div>
+                <div style="color:#6af;">Chr1: ${worldYInt.toLocaleString()} - ${(worldYInt + 1).toLocaleString()}</div>
+                <div style="margin-top:6px;padding-top:6px;border-top:1px solid #333;">
+                    <div><strong>交互强度:</strong> <span style="color:${interactionValue > 0.7 ? '#f66' : interactionValue > 0.3 ? '#fa6' : '#6f6'}">${interactionValue.toFixed(3)}</span></div>
+                    <div style="color:#888;font-size:11px;margin-top:2px;">
+                        层级 ${this.getCurrentLevel()} | 缩放 ${(this.scale * 100).toFixed(1)}%
+                    </div>
+                </div>
             `;
         } else {
             tooltip.style.display = 'none';
         }
+    }
+    
+    getInteractionValue(worldX, worldY) {
+        const level = this.getCurrentLevel();
+        const levelScale = Math.pow(2, level);
+        const tileSize = this.tileSize * levelScale;
+        
+        const tileX = Math.floor(worldX / tileSize);
+        const tileY = Math.floor(worldY / tileSize);
+        
+        const key = `${level}_${tileX}_${tileY}`;
+        const tile = this.tileCache.get(key);
+        
+        if (!tile) return 0;
+        
+        const localX = Math.floor((worldX % tileSize) / levelScale);
+        const localY = Math.floor((worldY % tileSize) / levelScale);
+        
+        if (localX >= 0 && localX < this.tileSize && localY >= 0 && localY < this.tileSize) {
+            return tile.values[localY][localX] || 0;
+        }
+        return 0;
     }
     
     startRenderLoop() {
