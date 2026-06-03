@@ -477,6 +477,7 @@ body {
   background: rgba(0,0,0,0.3);
   border-top: 1px solid #2a2a4a;
   border-bottom: 1px solid #2a2a4a;
+  position: relative;
 }
 
 #battle-turn-info {
@@ -546,6 +547,30 @@ body {
   color: #f5af19;
   border-bottom: 1px solid #2a2a4a;
   padding-bottom: 4px;
+}
+
+/* Target Hint */
+.target-hint {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 8px 24px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: bold;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.5);
+  animation: pulse 1.5s infinite;
+  display: none;
+  z-index: 100;
+  white-space: nowrap;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); }
+  50% { transform: translate(-50%, -50%) scale(1.05); }
 }
 
 .log-entry {

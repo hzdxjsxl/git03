@@ -199,10 +199,75 @@ function drawCards(battle, playerId, count) {
   addBattleLog(battle, `抽了 ${count} 张牌`);
 }
 
-function executeSpellEffect(battle, playerId, card, targetUid) {
+function validateTarget(battle, playerId, card, targetUid) {
+  const self = getSelf(battle, playerId);
+  const opponent = getOpponent(battle, playerId);
+  const targetType = card.target_type || 'none';
+
+  switch (targetType) {
+    case 'none':
+    case 'self_hero':
+    case 'all_enemies':
+    case 'all_enemy_minions': {
+      if (targetUid) {
+        return { error: `${card.name} 不需要选择目标` };
+      }
+      return { valid: true };
+    }
+
+    case 'any_enemy': {
+      if (!targetUid) {
+        return { error: `${card.name} 需要选择一个敌方目标` };
+      }
+      if (targetUid === 'hero' || targetUid === opponent.playerId) {
+        return { valid: true, resolvedTarget: { type: 'hero', playerId: opponent.playerId } };
+      }
+      const target = findMinionByUid(opponent.field, targetUid);
+      if (target) {
+        return { valid: true, resolvedTarget: { type: 'minion', uid: targetUid, minion: target } };
+      }
+      return { error: `${card.name} 只能选择敌方目标` };
+    }
+
+    case 'enemy_hero': {
+      if (!targetUid || (targetUid !== 'hero' && targetUid !== opponent.playerId)) {
+        return { error: `${card.name} 只能对敌方英雄使用` };
+      }
+      return { valid: true, resolvedTarget: { type: 'hero', playerId: opponent.playerId } };
+    }
+
+    case 'enemy_minion': {
+      if (!targetUid || targetUid === 'hero' || targetUid === opponent.playerId) {
+        return { error: `${card.name} 只能对敌方随从使用，不能对英雄使用` };
+      }
+      const target = findMinionByUid(opponent.field, targetUid);
+      if (!target) {
+        return { error: `${card.name} 只能对敌方随从使用` };
+      }
+      return { valid: true, resolvedTarget: { type: 'minion', uid: targetUid, minion: target } };
+    }
+
+    case 'friendly_minion': {
+      if (!targetUid || targetUid === 'hero' || targetUid === playerId) {
+        return { error: `${card.name} 只能对友方随从使用，不能对英雄使用` };
+      }
+      const target = findMinionByUid(self.field, targetUid);
+      if (!target) {
+        return { error: `${card.name} 只能对友方随从使用` };
+      }
+      return { valid: true, resolvedTarget: { type: 'minion', uid: targetUid, minion: target } };
+    }
+
+    default:
+      return { error: '未知的目标类型' };
+  }
+}
+
+function executeSpellEffect(battle, playerId, card, targetUid, resolvedTarget) {
   const self = getSelf(battle, playerId);
   const opponent = getOpponent(battle, playerId);
   const effect = card.skill_name;
+  const targetType = card.target_type || 'none';
 
   switch (effect) {
     case 'direct_damage': {
@@ -214,12 +279,13 @@ function executeSpellEffect(battle, playerId, card, targetUid) {
       };
       const damage = damageMap[card.name] || 2;
       
-      if (targetUid && targetUid !== 'hero') {
-        const target = findMinionByUid(opponent.field, targetUid);
-        if (target) {
-          dealDamageToMinion(battle, target, damage, card.name);
+      if (resolvedTarget) {
+        if (resolvedTarget.type === 'hero') {
+          dealDamageToHero(battle, resolvedTarget.playerId, damage, card.name);
+        } else if (resolvedTarget.type === 'minion') {
+          dealDamageToMinion(battle, resolvedTarget.minion, damage, card.name);
         }
-      } else {
+      } else if (targetType === 'enemy_hero') {
         dealDamageToHero(battle, opponent.playerId, damage, card.name);
       }
       break;
@@ -238,7 +304,7 @@ function executeSpellEffect(battle, playerId, card, targetUid) {
         dealDamageToMinion(battle, opponent.field[i], damage, card.name);
       }
       
-      if (card.name === '火焰风暴') {
+      if (targetType === 'all_enemies') {
         dealDamageToHero(battle, opponent.playerId, damage, card.name);
       }
       break;
@@ -253,9 +319,8 @@ function executeSpellEffect(battle, playerId, card, targetUid) {
       const amount = healMap[card.name] || 3;
       healHero(battle, playerId, amount);
 
-      if (card.name === '护盾术' && targetUid) {
-        const target = findMinionByUid(self.field, targetUid);
-        if (target) buffMinion(target, 'defense', 2);
+      if (card.name === '护盾术' && resolvedTarget && resolvedTarget.type === 'minion') {
+        buffMinion(resolvedTarget.minion, 'defense', 2);
       }
       break;
     }
@@ -268,9 +333,8 @@ function executeSpellEffect(battle, playerId, card, targetUid) {
       };
       const value = buffMap[card.name] || 2;
       
-      if (card.type === 'spell' || card.type === 'equipment') {
-        const target = targetUid ? findMinionByUid(self.field, targetUid) : self.field[self.field.length - 1];
-        if (target) buffMinion(target, 'attack', value);
+      if (resolvedTarget && resolvedTarget.type === 'minion') {
+        buffMinion(resolvedTarget.minion, 'attack', value);
       } else if (card.type === 'creature' && self.field.length > 1) {
         const others = self.field.filter(m => m.uid !== card.uid);
         if (others.length > 0) buffMinion(others[others.length - 1], 'attack', value);
@@ -286,9 +350,8 @@ function executeSpellEffect(battle, playerId, card, targetUid) {
       };
       const value = buffMap[card.name] || 2;
       
-      if (card.type === 'spell' || card.type === 'equipment') {
-        const target = targetUid ? findMinionByUid(self.field, targetUid) : self.field[self.field.length - 1];
-        if (target) buffMinion(target, 'defense', value);
+      if (resolvedTarget && resolvedTarget.type === 'minion') {
+        buffMinion(resolvedTarget.minion, 'defense', value);
       } else if (card.type === 'creature' && self.field.length > 1) {
         const others = self.field.filter(m => m.uid !== card.uid);
         if (others.length > 0) buffMinion(others[others.length - 1], 'defense', value);
@@ -302,20 +365,18 @@ function executeSpellEffect(battle, playerId, card, targetUid) {
     }
 
     case 'freeze': {
-      if (targetUid && targetUid !== 'hero') {
-        const target = findMinionByUid(opponent.field, targetUid);
-        if (target) {
-          target.frozen = true;
-          target.canAttack = false;
-          addBattleLog(battle, `${target.name} 被冻结`);
-        }
+      if (resolvedTarget && resolvedTarget.type === 'minion') {
+        const target = resolvedTarget.minion;
+        target.frozen = true;
+        target.canAttack = false;
+        addBattleLog(battle, `${target.name} 被冻结`);
       }
       break;
     }
   }
 }
 
-function playCardValidate(battle, playerId, cardUid) {
+function playCardValidate(battle, playerId, cardUid, targetUid) {
   const self = getSelf(battle, playerId);
   if (battle.currentTurn !== playerId) return { error: '不是你的回合' };
   if (battle.status !== 'ongoing') return { error: '战斗已结束' };
@@ -327,15 +388,22 @@ function playCardValidate(battle, playerId, cardUid) {
   if ((card.type === 'creature' || card.type === 'equipment') && self.field.length >= config.MAX_FIELD_SIZE) {
     return { error: '场上随从已满' };
   }
-  return { cardIndex, card };
+
+  const targetValidation = validateTarget(battle, playerId, card, targetUid);
+  if (targetValidation.error) {
+    return { error: targetValidation.error };
+  }
+
+  return { cardIndex, card, resolvedTarget: targetValidation.resolvedTarget };
 }
 
 function playCard(battle, playerId, cardUid, targetUid) {
-  const validation = playCardValidate(battle, playerId, cardUid);
+  const validation = playCardValidate(battle, playerId, cardUid, targetUid);
   if (validation.error) return validation;
 
   const self = getSelf(battle, playerId);
-  const { cardIndex, card } = validation;
+  const opponent = getOpponent(battle, playerId);
+  const { cardIndex, card, resolvedTarget } = validation;
 
   self.mana -= card.cost;
   self.hand.splice(cardIndex, 1);
@@ -347,7 +415,7 @@ function playCard(battle, playerId, cardUid, targetUid) {
     self.field.push(creature);
     
     if (card.skill_name && card.skill_name !== '') {
-      executeSpellEffect(battle, playerId, card, targetUid);
+      executeSpellEffect(battle, playerId, card, targetUid, resolvedTarget);
     }
   } else if (card.type === 'equipment') {
     if (self.equipment) {
@@ -355,17 +423,19 @@ function playCard(battle, playerId, cardUid, targetUid) {
     }
     self.equipment = card;
     
-    if (card.skill_name === 'buff_attack') {
+    if (card.skill_name === 'buff_attack' && card.target_type !== 'friendly_minion') {
       for (const m of self.field) m.currentAttack += 1;
-    } else if (card.skill_name === 'buff_defense') {
+    } else if (card.skill_name === 'buff_defense' && card.target_type !== 'friendly_minion') {
       for (const m of self.field) m.currentDefense += 1;
     }
     
     if (card.skill_name && card.skill_name !== 'buff_attack' && card.skill_name !== 'buff_defense') {
-      executeSpellEffect(battle, playerId, card, targetUid);
+      executeSpellEffect(battle, playerId, card, targetUid, resolvedTarget);
+    } else if (card.target_type === 'friendly_minion') {
+      executeSpellEffect(battle, playerId, card, targetUid, resolvedTarget);
     }
   } else if (card.type === 'spell') {
-    executeSpellEffect(battle, playerId, card, targetUid);
+    executeSpellEffect(battle, playerId, card, targetUid, resolvedTarget);
     self.graveyard.push(card);
   }
 
@@ -527,4 +597,5 @@ module.exports = {
   sanitizeForPlayer,
   activeBattles,
   finishBattle,
+  validateTarget,
 };

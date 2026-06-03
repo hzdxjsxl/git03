@@ -5,6 +5,7 @@ const BattleClient = {
   selectedAttacker: null,
   phase: 'idle',
   needsTarget: false,
+  targetType: 'none',
 
   init() {
     SocketClient.onBattleStart((data) => {
@@ -41,6 +42,41 @@ const BattleClient = {
     return this.battleState && this.battleState.currentTurn === App.playerId;
   },
 
+  cardNeedsTarget(card) {
+    const needTargetTypes = ['any_enemy', 'enemy_hero', 'enemy_minion', 'friendly_minion'];
+    return needTargetTypes.includes(card.target_type);
+  },
+
+  getTargetTypeDesc(targetType) {
+    const desc = {
+      'any_enemy': '选择一个敌方目标',
+      'enemy_hero': '只能对敌方英雄使用',
+      'enemy_minion': '只能对敌方随从使用',
+      'friendly_minion': '只能对友方随从使用',
+      'self_hero': '对自己英雄使用',
+      'all_enemy_minions': '对所有敌方随从生效',
+      'all_enemies': '对所有敌方生效',
+      'none': '无需目标',
+    };
+    return desc[targetType] || '';
+  },
+
+  canTargetEnemyHero(card) {
+    return card.target_type === 'any_enemy' || card.target_type === 'enemy_hero';
+  },
+
+  canTargetEnemyMinion(card) {
+    return card.target_type === 'any_enemy' || card.target_type === 'enemy_minion';
+  },
+
+  canTargetFriendlyMinion(card) {
+    return card.target_type === 'friendly_minion';
+  },
+
+  canTargetFriendlyHero(card) {
+    return card.target_type === 'self_hero';
+  },
+
   render() {
     if (!this.battleState) return;
 
@@ -67,13 +103,29 @@ const BattleClient = {
     this.renderHand(s.self.hand);
 
     this.setupTargetSelection();
+    this.updateTargetHint();
+  },
+
+  updateTargetHint() {
+    const hintEl = document.getElementById('target-hint');
+    if (!hintEl) return;
+    
+    if (this.needsTarget && this.selectedCard) {
+      const hint = this.getTargetTypeDesc(this.selectedCard.target_type);
+      hintEl.textContent = hint;
+      hintEl.style.display = 'block';
+    } else if (this.selectedAttacker) {
+      hintEl.textContent = '选择攻击目标（敌方随从或英雄）';
+      hintEl.style.display = 'block';
+    } else {
+      hintEl.style.display = 'none';
+    }
   },
 
   renderLog() {
     if (!this.battleState || !this.battleState.log) return;
     const logEl = document.getElementById('battle-log');
     logEl.innerHTML = '';
-    logEl.classList.add('visible');
     for (const entry of this.battleState.log.slice(-8)) {
       const div = document.createElement('div');
       div.className = 'log-entry';
@@ -92,14 +144,29 @@ const BattleClient = {
         el.style.filter = 'hue-rotate(180deg)';
         el.style.boxShadow = '0 0 10px #00f';
       }
-      if (side === 'self' && card.canAttack && this.isMyTurn() && !card.frozen) {
-        el.classList.add('can-attack');
-        el.addEventListener('click', () => this.selectAttacker(card));
+      
+      if (side === 'self') {
+        if (card.canAttack && this.isMyTurn() && !card.frozen) {
+          el.classList.add('can-attack');
+          el.addEventListener('click', () => this.selectAttacker(card));
+        }
+        if (this.needsTarget && this.selectedCard && this.canTargetFriendlyMinion(this.selectedCard)) {
+          el.classList.add('targetable');
+          el.addEventListener('click', () => this.selectTarget(card, 'friendly_minion'));
+        }
       }
-      if (side === 'opponent' && (this.selectedAttacker || this.needsTarget)) {
-        el.classList.add('targetable');
-        el.addEventListener('click', () => this.selectTarget(card));
+      
+      if (side === 'opponent') {
+        if (this.selectedAttacker) {
+          el.classList.add('targetable');
+          el.addEventListener('click', () => this.selectTarget(card, 'enemy_minion'));
+        }
+        if (this.needsTarget && this.selectedCard && this.canTargetEnemyMinion(this.selectedCard)) {
+          el.classList.add('targetable');
+          el.addEventListener('click', () => this.selectTarget(card, 'enemy_minion'));
+        }
       }
+      
       container.appendChild(el);
     }
   },
@@ -123,65 +190,96 @@ const BattleClient = {
     }
   },
 
-  cardNeedsTarget(card) {
-    const targetSkills = ['direct_damage', 'buff_attack', 'buff_defense', 'freeze'];
-    return targetSkills.includes(card.skill_name);
-  },
-
   playCard(card) {
     if (!this.isMyTurn()) return;
+    
+    const targetType = card.target_type || 'none';
     
     if (this.cardNeedsTarget(card)) {
       this.selectedCard = card;
       this.needsTarget = true;
+      this.targetType = targetType;
+      this.selectedAttacker = null;
       this.render();
-      App.notify('请选择目标', 'info');
+      
+      const hint = this.getTargetTypeDesc(targetType);
+      if (hint) App.notify(hint, 'info');
     } else {
-      SocketClient.playCard(this.battleId, card.uid);
+      SocketClient.playCard(this.battleId, card.uid, null);
       this.clearSelection();
     }
   },
 
   selectAttacker(card) {
+    if (!this.isMyTurn()) return;
     this.selectedAttacker = card;
     this.selectedCard = null;
     this.needsTarget = false;
+    this.targetType = 'none';
     this.render();
+    App.notify('选择攻击目标', 'info');
   },
 
-  selectTarget(card) {
+  selectTarget(card, targetSide) {
     if (this.needsTarget && this.selectedCard) {
-      const isFriendly = card.ownerId === App.playerId;
-      const friendlyBuffs = ['buff_attack', 'buff_defense'];
-      const isFriendlyBuff = friendlyBuffs.includes(this.selectedCard.skill_name);
+      const cardTargetType = this.selectedCard.target_type;
       
-      if (isFriendlyBuff && !isFriendly) {
-        App.notify('请选择己方随从', 'error');
+      if (cardTargetType === 'enemy_minion' && targetSide !== 'enemy_minion') {
+        App.notify('这张牌只能对敌方随从使用！', 'error');
         return;
       }
-      if (!isFriendlyBuff && isFriendly) {
-        App.notify('请选择敌方目标', 'error');
+      if (cardTargetType === 'friendly_minion' && targetSide !== 'friendly_minion') {
+        App.notify('这张牌只能对友方随从使用！', 'error');
         return;
       }
       
       SocketClient.playCard(this.battleId, this.selectedCard.uid, card.uid);
       this.clearSelection();
     } else if (this.selectedAttacker) {
+      if (targetSide !== 'enemy_minion') {
+        App.notify('只能攻击敌方目标！', 'error');
+        return;
+      }
       SocketClient.attack(this.battleId, this.selectedAttacker.uid, card.uid);
       this.clearSelection();
     }
   },
 
-  selectHeroTarget() {
+  selectHeroTarget(side) {
     if (this.needsTarget && this.selectedCard) {
-      const hostileSkills = ['direct_damage'];
-      if (!hostileSkills.includes(this.selectedCard.skill_name)) {
-        App.notify('该技能不能对英雄使用', 'error');
-        return;
+      const cardTargetType = this.selectedCard.target_type;
+      
+      if (side === 'opponent') {
+        if (cardTargetType === 'enemy_minion') {
+          App.notify('这张牌只能对敌方随从使用，不能对英雄使用！', 'error');
+          return;
+        }
+        if (cardTargetType === 'friendly_minion' || cardTargetType === 'self_hero') {
+          App.notify('这张牌不能对敌方英雄使用！', 'error');
+          return;
+        }
+        if (!this.canTargetEnemyHero(this.selectedCard)) {
+          App.notify('这张牌不能对敌方英雄使用！', 'error');
+          return;
+        }
+        SocketClient.playCard(this.battleId, this.selectedCard.uid, 'hero');
+      } else {
+        if (cardTargetType === 'enemy_minion' || cardTargetType === 'any_enemy' || cardTargetType === 'enemy_hero') {
+          App.notify('这张牌不能对友方英雄使用！', 'error');
+          return;
+        }
+        if (!this.canTargetFriendlyHero(this.selectedCard)) {
+          App.notify('这张牌不能对友方英雄使用！', 'error');
+          return;
+        }
+        SocketClient.playCard(this.battleId, this.selectedCard.uid, null);
       }
-      SocketClient.playCard(this.battleId, this.selectedCard.uid, 'hero');
       this.clearSelection();
     } else if (this.selectedAttacker) {
+      if (side !== 'opponent') {
+        App.notify('只能攻击敌方英雄！', 'error');
+        return;
+      }
       SocketClient.attack(this.battleId, this.selectedAttacker.uid, 'hero');
       this.clearSelection();
     }
@@ -191,6 +289,7 @@ const BattleClient = {
     this.selectedCard = null;
     this.selectedAttacker = null;
     this.needsTarget = false;
+    this.targetType = 'none';
     this.render();
   },
 
@@ -200,23 +299,21 @@ const BattleClient = {
     
     if (oppHero) {
       oppHero.classList.remove('targetable');
-      if (this.selectedAttacker || (this.needsTarget && this.selectedCard && 
-          ['direct_damage', 'freeze'].includes(this.selectedCard.skill_name))) {
+      if (this.selectedAttacker) {
         oppHero.classList.add('targetable');
       }
-      oppHero.onclick = () => {
-        if (this.selectedAttacker || (this.needsTarget && this.selectedCard)) {
-          this.selectHeroTarget();
-        }
-      };
+      if (this.needsTarget && this.selectedCard && this.canTargetEnemyHero(this.selectedCard)) {
+        oppHero.classList.add('targetable');
+      }
+      oppHero.onclick = () => this.selectHeroTarget('opponent');
     }
     
     if (selfHero) {
       selfHero.classList.remove('targetable');
-      if (this.needsTarget && this.selectedCard && 
-          ['buff_attack', 'buff_defense', 'heal'].includes(this.selectedCard.skill_name)) {
+      if (this.needsTarget && this.selectedCard && this.canTargetFriendlyHero(this.selectedCard)) {
         selfHero.classList.add('targetable');
       }
+      selfHero.onclick = () => this.selectHeroTarget('self');
     }
   },
 

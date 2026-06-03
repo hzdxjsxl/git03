@@ -8,6 +8,7 @@ function formatCard(card) {
     defense: card.defense,
     skillName: card.skill_name,
     skillDesc: card.skill_desc,
+    target_type: card.target_type,
     rarity: card.rarity,
   };
 }
