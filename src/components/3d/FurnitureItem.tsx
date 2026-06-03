@@ -1,4 +1,4 @@
-import React, { useRef, useMemo } from 'react';
+import React, { useRef } from 'react';
 import { useFrame, ThreeEvent } from '@react-three/fiber';
 import * as THREE from 'three';
 import { PlacedFurniture } from '@/types';
@@ -20,15 +20,6 @@ export const FurnitureItem: React.FC<FurnitureItemProps> = ({ item }) => {
   const materialConfig = getMaterialById(item.materialId);
   const ModelComponent = furniture ? FURNITURE_MODELS[item.furnitureId] : null;
 
-  const material = useMemo(() => {
-    if (!materialConfig) return new THREE.MeshStandardMaterial();
-    return new THREE.MeshStandardMaterial({
-      color: new THREE.Color(materialConfig.color),
-      roughness: materialConfig.roughness,
-      metalness: materialConfig.metalness,
-    });
-  }, [materialConfig]);
-
   const handleClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
     if (!isDragging) {
@@ -45,7 +36,7 @@ export const FurnitureItem: React.FC<FurnitureItemProps> = ({ item }) => {
     }
   });
 
-  if (!furniture || !ModelComponent) return null;
+  if (!furniture || !ModelComponent || !materialConfig) return null;
 
   return (
     <group
@@ -54,7 +45,7 @@ export const FurnitureItem: React.FC<FurnitureItemProps> = ({ item }) => {
       rotation={item.rotation as [number, number, number]}
       onClick={handleClick}
     >
-      <ModelComponent material={material} />
+      <ModelComponent materialConfig={materialConfig} />
 
       {isSelected && (
         <mesh position={[0, -0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>

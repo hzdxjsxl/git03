@@ -16,7 +16,7 @@ export const GhostPreview: React.FC<GhostPreviewProps> = ({ furnitureId, positio
   const { placedItems } = useSceneStore();
 
   const furniture = getFurnitureById(furnitureId);
-  const materialConfig = furniture ? getMaterialById(furniture.defaultMaterialId) : null;
+  const baseMaterialConfig = furniture ? getMaterialById(furniture.defaultMaterialId) : null;
   const ModelComponent = furniture ? FURNITURE_MODELS[furnitureId] : null;
 
   const canPlace = useMemo(() => {
@@ -32,24 +32,32 @@ export const GhostPreview: React.FC<GhostPreviewProps> = ({ furnitureId, positio
     return canPlaceItem(testItem, placedItems);
   }, [furnitureId, position, rotation, placedItems, furniture]);
 
-  const material = useMemo(() => {
-    if (!materialConfig) return new THREE.MeshStandardMaterial();
-    return new THREE.MeshStandardMaterial({
-      color: new THREE.Color(materialConfig.color),
-      roughness: materialConfig.roughness,
-      metalness: materialConfig.metalness,
-      transparent: true,
-      opacity: canPlace ? 0.6 : 0.4,
-      emissive: canPlace ? new THREE.Color('#00ff00') : new THREE.Color('#ff0000'),
-      emissiveIntensity: canPlace ? 0.1 : 0.2,
-    });
-  }, [materialConfig, canPlace]);
-
-  if (!furniture || !ModelComponent) return null;
+  if (!furniture || !ModelComponent || !baseMaterialConfig) return null;
 
   return (
     <group position={position} rotation={rotation}>
-      <ModelComponent material={material} />
+      <ModelComponent
+        materialConfig={baseMaterialConfig}
+        transparent={true}
+        opacity={canPlace ? 0.6 : 0.4}
+        emissive={canPlace ? '#00ff00' : '#ff0000'}
+        emissiveIntensity={canPlace ? 0.1 : 0.2}
+      />
+      <mesh position={[0, -0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry
+          args={[
+            Math.max(furniture.boundingBox.width, furniture.boundingBox.depth) * 0.52,
+            Math.max(furniture.boundingBox.width, furniture.boundingBox.depth) * 0.6,
+            32,
+          ]}
+        />
+        <meshBasicMaterial
+          color={canPlace ? '#00ff00' : '#ff0000'}
+          transparent
+          opacity={0.6}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
     </group>
   );
 };

@@ -44,13 +44,14 @@ const SceneContent: React.FC = () => {
 
           if (canPlaceItem(newItem, placedItems)) {
             addFurniture(newItem);
+            setDragging(false);
           }
         }
       } else {
         selectItem(null);
       }
     },
-    [isDragging, dragFurnitureId, placedItems, addFurniture, selectItem, ghostRotation]
+    [isDragging, dragFurnitureId, placedItems, addFurniture, selectItem, ghostRotation, setDragging]
   );
 
   const handleFloorPointerMove = useCallback(
@@ -107,8 +108,7 @@ const SceneContent: React.FC = () => {
 
       <OrbitControls
         makeDefault
-        enableRotate={!isDragging}
-        enablePan={!isDragging}
+        enabled={!isDragging}
         enableZoom={true}
         minDistance={3}
         maxDistance={15}
