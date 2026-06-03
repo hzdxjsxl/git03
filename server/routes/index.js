@@ -21,14 +21,14 @@ router.post('/auth/register', (req, res) => {
     return res.status(400).json({ error: '用户名已存在' });
   }
   const player = playerModel.createPlayer(username);
-  res.json({ player: { id: player.id, username: player.username, token: player.token } });
+  res.json({ player: { id: player.id, username: player.username, token: player.token, gold: player.gold } });
 });
 
 router.post('/auth/login', (req, res) => {
   const { username } = req.body;
   const player = playerModel.findByUsername(username);
   if (!player) return res.status(404).json({ error: '用户不存在' });
-  res.json({ player: { id: player.id, username: player.username, token: player.token } });
+  res.json({ player: { id: player.id, username: player.username, token: player.token, gold: player.gold } });
 });
 
 router.get('/player/info', authMiddleware, battleController.getPlayerInfo);

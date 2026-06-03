@@ -170,11 +170,15 @@ const CardManager = {
     for (const card of this.collection) {
       const inDeck = this.editingDeckCards.find(c => c.cardId === card.id);
       const availCount = card.owned - (inDeck ? inDeck.quantity : 0);
-      if (availCount <= 0) continue;
+      const canAdd = availCount > 0;
       const el = this.renderCard({ ...card, owned: availCount }, {
         small: true,
-        onClick: (c) => this.addToDeck(c.id),
+        onClick: canAdd ? (c) => this.addToDeck(c.id) : null,
       });
+      if (!canAdd) {
+        el.style.opacity = '0.4';
+        el.style.cursor = 'not-allowed';
+      }
       availableContainer.appendChild(el);
     }
   },

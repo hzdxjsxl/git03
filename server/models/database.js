@@ -78,7 +78,7 @@ async function initialize() {
       id TEXT PRIMARY KEY,
       username TEXT UNIQUE NOT NULL,
       token TEXT NOT NULL,
-      gold INTEGER DEFAULT 200,
+      gold INTEGER DEFAULT 300,
       created_at TEXT DEFAULT (datetime('now'))
     );
 

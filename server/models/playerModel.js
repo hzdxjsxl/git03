@@ -5,9 +5,10 @@ function createPlayer(username) {
   const { run, saveToFile } = getDb();
   const id = uuidv4();
   const token = uuidv4();
-  run('INSERT INTO players (id, username, token) VALUES (?, ?, ?)', [id, username, token]);
+  const defaultGold = 300;
+  run('INSERT INTO players (id, username, token, gold) VALUES (?, ?, ?, ?)', [id, username, token, defaultGold]);
   saveToFile();
-  return { id, username, token };
+  return { id, username, token, gold: defaultGold };
 }
 
 function findByToken(token) {

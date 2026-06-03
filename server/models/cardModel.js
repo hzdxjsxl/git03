@@ -64,21 +64,34 @@ function openPack(playerId) {
 
   const cards = [];
   const allCards = getAllCards();
-  const pool = [];
-  for (const card of allCards) {
-    const weight = CARD_RARITY_WEIGHTS[card.rarity] || 1;
-    for (let i = 0; i < weight; i++) pool.push(card);
-  }
+  const maxPerCard = 2;
 
-  const picked = new Set();
-  while (cards.length < config.PACK_SIZE) {
+  const owned = {};
+  const playerCards = getDb().query(
+    'SELECT card_id, count FROM player_cards WHERE player_id = ? AND count > 0',
+    [playerId]
+  );
+  for (const pc of playerCards) owned[pc.card_id] = pc.count;
+
+  for (let i = 0; i < config.PACK_SIZE; i++) {
+    const pool = [];
+    for (const card of allCards) {
+      const currentOwned = owned[card.id] || 0;
+      if (currentOwned >= maxPerCard) continue;
+      const weight = CARD_RARITY_WEIGHTS[card.rarity] || 1;
+      for (let j = 0; j < weight; j++) pool.push(card);
+    }
+    if (pool.length === 0) {
+      for (const card of allCards) {
+        const weight = CARD_RARITY_WEIGHTS[card.rarity] || 1;
+        for (let j = 0; j < weight; j++) pool.push(card);
+      }
+    }
     const idx = Math.floor(Math.random() * pool.length);
     const card = pool[idx];
-    if (!picked.has(card.id) || pool.length <= config.PACK_SIZE) {
-      picked.add(card.id);
-      addCardToPlayer(playerId, card.id, 1);
-      cards.push(card);
-    }
+    addCardToPlayer(playerId, card.id, 1);
+    owned[card.id] = (owned[card.id] || 0) + 1;
+    cards.push(card);
   }
   saveToFile();
   return cards;
