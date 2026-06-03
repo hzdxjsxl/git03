@@ -1,0 +1,13 @@
+{
+  "name": "disk-treemap",
+  "version": "1.0.0",
+  "description": "交互式嵌套矩形树图展示磁盘存储深度",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

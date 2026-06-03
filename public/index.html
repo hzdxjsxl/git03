@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>磁盘存储深度分析 - 嵌套矩形树图</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>磁盘存储深度分析</h1>
+      <div class="breadcrumb" id="breadcrumb"></div>
+      <div class="info-bar">
+        <span id="currentPath">当前位置: C:</span>
+        <span id="totalSize">总大小: -</span>
+        <span id="itemCount">项目数: -</span>
+      </div>
+    </header>
+    
+    <div class="main-content">
+      <div class="treemap-container" id="treemapContainer">
+        <div class="treemap" id="treemap"></div>
+      </div>
+      
+      <div class="sidebar">
+        <h3>图例</h3>
+        <div class="legend">
+          <div class="legend-item">
+            <span class="legend-color disk"></span>
+            <span>磁盘</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color folder"></span>
+            <span>文件夹</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color file"></span>
+            <span>文件</span>
+          </div>
+        </div>
+        
+        <h3>操作说明</h3>
+        <ul class="instructions">
+          <li>点击<span class="highlight">文件夹</span>可下钻查看子目录</li>
+          <li>点击<span class="highlight">面包屑</span>可返回上层</li>
+          <li>矩形面积与占用空间大小成正比</li>
+          <li>鼠标悬停查看详细信息</li>
+        </ul>
+        
+        <div class="tooltip" id="tooltip"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/treemap-algorithm.js"></script>
+  <script src="js/controller.js"></script>
+  <script src="js/renderer.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
