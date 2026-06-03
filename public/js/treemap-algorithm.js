@@ -101,8 +101,8 @@ const TreemapAlgorithm = (function() {
     const sortedNodes = [...nodes].sort((a, b) => b.value - a.value);
     const values = sortedNodes.map(n => n.value);
     const bounds = {
-      x: padding,
-      y: padding,
+      x: 0,
+      y: 0,
       width: containerWidth - 2 * padding,
       height: containerHeight - 2 * padding
     };
@@ -112,8 +112,8 @@ const TreemapAlgorithm = (function() {
 
     return sortedNodes.map((node, index) => ({
       ...node,
-      x: Math.round(rects[index].x * 100) / 100,
-      y: Math.round(rects[index].y * 100) / 100,
+      x: Math.round((rects[index].x + padding) * 100) / 100,
+      y: Math.round((rects[index].y + padding) * 100) / 100,
       width: Math.max(0, Math.round(rects[index].width * 100) / 100),
       height: Math.max(0, Math.round(rects[index].height * 100) / 100),
       aspectRatio: Math.max(

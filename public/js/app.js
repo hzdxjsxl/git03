@@ -55,6 +55,18 @@
   function setupControllerListeners() {
     TreemapController.on('onLayoutChange', (layout) => {
       const stats = TreemapController.getStatistics();
+      const validation = TreemapAlgorithm.validateLayout(layout);
+      console.log('布局验证:', validation);
+      const windows = layout.children.find(c => c.name === 'Windows');
+      if (windows) {
+        console.log('Windows 节点:', {w: windows.width, h: windows.height, x: windows.x, y: windows.y});
+        console.log('Windows 的子节点:', windows.children.map(cc => ({name: cc.name, x: cc.x, y: cc.y, w: cc.width, h: cc.height})));
+        const system32 = windows.children.find(c => c.name === 'System32');
+        if (system32) {
+          console.log('System32 节点:', {w: system32.width, h: system32.height, x: system32.x, y: system32.y});
+          console.log('System32 的子节点:', system32.children.map(cc => ({name: cc.name, x: cc.x, y: cc.y, w: cc.width, h: cc.height})));
+        }
+      }
       TreemapRenderer.render(layout, handleNodeClick);
       TreemapRenderer.renderInfoBar(stats);
     });
