@@ -39,50 +39,14 @@ function SceneContent() {
     const dt = delta * simulationSpeed;
     lastTimeRef.current += dt;
 
-    while (lastTimeRef.current >= simulationParams.timeStep) {
+    let steps = 0;
+    while (lastTimeRef.current >= simulationParams.timeStep && steps < 10) {
       stepWaveField(waveField, simulationParams, simulationParams.timeStep);
       lastTimeRef.current -= simulationParams.timeStep;
+      steps++;
     }
 
     setCurrentTime(waveField.time);
-
-    let pMaxDist = 0;
-    let sMaxDist = 0;
-    const source = waveField.source;
-
-    if (source) {
-      for (let k = 0; k < waveField.nz; k++) {
-        for (let j = 0; j < waveField.ny; j++) {
-          for (let i = 0; i < waveField.nx; i++) {
-            const idx = k * waveField.nx * waveField.ny + j * waveField.nx + i;
-            const pDisp = Math.abs(waveField.pWave[idx]);
-            const sMag = Math.sqrt(
-              waveField.sWaveX[idx] * waveField.sWaveX[idx] +
-              waveField.sWaveY[idx] * waveField.sWaveY[idx] +
-              waveField.sWaveZ[idx] * waveField.sWaveZ[idx]
-            );
-
-            if (pDisp > 0.0000001) {
-              const dx = (i - source.x) * waveField.dx;
-              const dy = (j - source.y) * waveField.dy;
-              const dz = (k - source.z) * waveField.dz;
-              const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-              pMaxDist = Math.max(pMaxDist, dist);
-            }
-
-            if (sMag > 0.0000001) {
-              const dx = (i - source.x) * waveField.dx;
-              const dy = (j - source.y) * waveField.dy;
-              const dz = (k - source.z) * waveField.dz;
-              const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-              sMaxDist = Math.max(sMaxDist, dist);
-            }
-          }
-        }
-      }
-    }
-
-    setWaveDistances(pMaxDist, sMaxDist);
   });
 
   return (

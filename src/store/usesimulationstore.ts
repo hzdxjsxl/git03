@@ -45,7 +45,7 @@ interface SimulationState {
 
 const defaultParams: SimulationParams = {
   timeStep: 0.0005,
-  damping: 0.02,
+  damping: 0.005,
   boundaryCondition: 'absorbing',
   sourceFrequency: 0.5,
 };
@@ -54,7 +54,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   isRunning: false,
   rockModel: layeredModel,
   waveField: null,
-  sourcePosition: { x: 8, y: 8, z: 4 },
+  sourcePosition: { x: 8, y: 8, z: 8 },
   sourceMagnitude: 8.0,
   simulationParams: defaultParams,
   simulationSpeed: 2.0,

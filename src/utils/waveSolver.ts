@@ -370,7 +370,8 @@ export function stepWaveField(
 
         const lapP = laplacian(pWave, i, j, k, nx, ny, nz, dx, dy, dz, boundaryCondition);
 
-        let sourceTerm = 0;
+        let pSourceTerm = 0;
+        let sSourceTerm = 0;
         if (source) {
           const dist = Math.sqrt(
             Math.pow(i - source.x, 2) +
@@ -380,11 +381,12 @@ export function stepWaveField(
           if (dist < 3) {
             const wavelet = gaussianSource(newTime, sourceFrequency, 0.5);
             const spatialDecay = Math.exp(-dist * dist / 4);
-            sourceTerm = sourceMagnitude * 500000 * wavelet * spatialDecay;
+            pSourceTerm = sourceMagnitude * 5000000 * wavelet * spatialDecay;
+            sSourceTerm = sourceMagnitude * 3000000 * wavelet * spatialDecay;
           }
         }
 
-        const pAccel = vpVal * vpVal * lapP + sourceTerm / rhoVal;
+        const pAccel = vpVal * vpVal * lapP + pSourceTerm / rhoVal;
         pWaveNext[index] =
           2 * pWave[index] -
           pWavePrev[index] +
@@ -396,9 +398,9 @@ export function stepWaveField(
         const lapSZ = laplacian(sWaveZ, i, j, k, nx, ny, nz, dx, dy, dz, boundaryCondition);
 
         const vsVal = vs[index];
-        const sAccelX = vsVal * vsVal * lapSX + sourceTerm * 0.3 / rhoVal;
-        const sAccelY = vsVal * vsVal * lapSY;
-        const sAccelZ = vsVal * vsVal * lapSZ;
+        const sAccelX = vsVal * vsVal * lapSX + sSourceTerm / rhoVal;
+        const sAccelY = vsVal * vsVal * lapSY + sSourceTerm * 0.5 / rhoVal;
+        const sAccelZ = vsVal * vsVal * lapSZ + sSourceTerm * 0.5 / rhoVal;
 
         sWaveNextX[index] =
           2 * sWaveX[index] -
