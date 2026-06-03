@@ -1,5 +1,5 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { Canvas, useThree, ThreeEvent } from '@react-three/fiber';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Canvas, ThreeEvent } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { Room } from '@/components/3d/Room';
@@ -10,97 +10,90 @@ import { useSceneStore } from '@/store/useSceneStore';
 import { getFurnitureById } from '@/config/furniture';
 import { canPlaceItem } from '@/utils/collision';
 
-interface SceneContentProps {
-  onCanvasClick: (point: THREE.Vector3) => void;
-}
+const SceneContent: React.FC = () => {
+  const {
+    isDragging,
+    dragFurnitureId,
+    placedItems,
+    addFurniture,
+    selectItem,
+    setDragging,
+  } = useSceneStore();
 
-const SceneContent: React.FC<SceneContentProps> = ({ onCanvasClick }) => {
-  const raycaster = useRef(new THREE.Raycaster());
-  const mouse = useRef(new THREE.Vector2());
-  const plane = useRef(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0));
-  const { isDragging, dragFurnitureId, placedItems, addFurniture, selectItem } = useSceneStore();
   const [ghostPosition, setGhostPosition] = useState<[number, number, number]>([0, 0.01, 0]);
   const [ghostRotation, setGhostRotation] = useState<[number, number, number]>([0, 0, 0]);
-  const { camera, gl } = useThree();
 
-  const handlePointerMove = (e: ThreeEvent<PointerEvent>) => {
-    if (!isDragging || !dragFurnitureId) return;
-    
-    mouse.current.x = (e.clientX / window.innerWidth) * 2 - 1;
-    mouse.current.y = -(e.clientY / window.innerHeight) * 2 + 1;
-    
-    raycaster.current.setFromCamera(mouse.current, camera);
-    const intersect = new THREE.Vector3();
-    raycaster.current.ray.intersectPlane(plane.current, intersect);
-    
-    if (intersect) {
-      setGhostPosition([intersect.x, 0.01, intersect.z]);
-    }
-  };
+  const handleFloorClick = useCallback(
+    (e: ThreeEvent<MouseEvent>) => {
+      e.stopPropagation();
 
-  const handleCanvasClick = (e: ThreeEvent<MouseEvent>) => {
-    if (e.target !== e.currentTarget) return;
-    
-    mouse.current.x = (e.clientX / window.innerWidth) * 2 - 1;
-    mouse.current.y = -(e.clientY / window.innerHeight) * 2 + 1;
-    
-    raycaster.current.setFromCamera(mouse.current, camera);
-    const intersect = new THREE.Vector3();
-    raycaster.current.ray.intersectPlane(plane.current, intersect);
-    
-    if (intersect) {
+      const point = e.point;
+
       if (isDragging && dragFurnitureId) {
         const furniture = getFurnitureById(dragFurnitureId);
         if (furniture) {
+          const position: [number, number, number] = [point.x, 0.01, point.z];
           const newItem = {
             instanceId: `${dragFurnitureId}-${Date.now()}`,
             furnitureId: dragFurnitureId,
-            position: [intersect.x, 0.01, intersect.z] as [number, number, number],
+            position,
             rotation: ghostRotation,
             materialId: furniture.defaultMaterialId,
             scale: 1,
           };
-          
+
           if (canPlaceItem(newItem, placedItems)) {
             addFurniture(newItem);
           }
         }
       } else {
-        onCanvasClick(intersect);
         selectItem(null);
       }
-    }
-  };
+    },
+    [isDragging, dragFurnitureId, placedItems, addFurniture, selectItem, ghostRotation]
+  );
 
-  const handleKeyDown = (e: KeyboardEvent) => {
-    if (isDragging && dragFurnitureId) {
-      if (e.key === 'r' || e.key === 'R') {
-        setGhostRotation(prev => [prev[0], prev[1] + Math.PI / 4, prev[2]]);
-      }
-    }
-  };
+  const handleFloorPointerMove = useCallback(
+    (e: ThreeEvent<PointerEvent>) => {
+      if (!isDragging || !dragFurnitureId) return;
+      e.stopPropagation();
+      const point = e.point;
+      setGhostPosition([point.x, 0.01, point.z]);
+    },
+    [isDragging, dragFurnitureId]
+  );
 
   useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setDragging(false);
+        setGhostRotation([0, 0, 0]);
+      }
+      if ((e.key === 'r' || e.key === 'R') && isDragging && dragFurnitureId) {
+        setGhostRotation((prev) => [prev[0], prev[1] + Math.PI / 4, prev[2]]);
+      }
+    };
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isDragging, dragFurnitureId]);
+  }, [isDragging, dragFurnitureId, setDragging]);
 
   return (
     <>
       <Lighting />
       <Room />
-      
+
       <mesh
-        position={[0, 0, 0]}
         rotation={[-Math.PI / 2, 0, 0]}
-        onClick={handleCanvasClick}
-        onPointerMove={handlePointerMove}
+        position={[0, 0.005, 0]}
+        onClick={handleFloorClick}
+        onPointerMove={handleFloorPointerMove}
       >
         <planeGeometry args={[20, 20]} />
-        <meshBasicMaterial transparent opacity={0} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} side={THREE.DoubleSide} />
       </mesh>
 
-      {placedItems.map(item => (
+      {placedItems.map((item) => (
         <FurnitureItem key={item.instanceId} item={item} />
       ))}
 
@@ -114,9 +107,9 @@ const SceneContent: React.FC<SceneContentProps> = ({ onCanvasClick }) => {
 
       <OrbitControls
         makeDefault
-        enablePan={true}
+        enableRotate={!isDragging}
+        enablePan={!isDragging}
         enableZoom={true}
-        enableRotate={true}
         minDistance={3}
         maxDistance={15}
         minPolarAngle={0.2}
@@ -128,17 +121,17 @@ const SceneContent: React.FC<SceneContentProps> = ({ onCanvasClick }) => {
 };
 
 export const SceneRenderer: React.FC = () => {
-  const handleCanvasClick = (point: THREE.Vector3) => {
-  };
-
   return (
     <Canvas
       shadows
       camera={{ position: [6, 5, 6], fov: 50 }}
       gl={{ antialias: true, alpha: false }}
       style={{ background: '#1a1a2e' }}
+      onPointerMissed={() => {
+        useSceneStore.getState().selectItem(null);
+      }}
     >
-      <SceneContent onCanvasClick={handleCanvasClick} />
+      <SceneContent />
     </Canvas>
   );
 };

@@ -13,7 +13,7 @@ interface FurnitureItemProps {
 
 export const FurnitureItem: React.FC<FurnitureItemProps> = ({ item }) => {
   const groupRef = useRef<THREE.Group>(null);
-  const { selectedItemId, selectItem, updateFurniture } = useSceneStore();
+  const { selectedItemId, selectItem, updateFurniture, isDragging } = useSceneStore();
   const isSelected = selectedItemId === item.instanceId;
 
   const furniture = getFurnitureById(item.furnitureId);
@@ -31,7 +31,9 @@ export const FurnitureItem: React.FC<FurnitureItemProps> = ({ item }) => {
 
   const handleClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
-    selectItem(item.instanceId);
+    if (!isDragging) {
+      selectItem(item.instanceId);
+    }
   };
 
   useFrame((state, delta) => {

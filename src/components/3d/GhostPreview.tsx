@@ -1,5 +1,4 @@
-import React, { useRef, useMemo } from 'react';
-import { useFrame } from '@react-three/fiber';
+import React, { useMemo } from 'react';
 import * as THREE from 'three';
 import { getFurnitureById } from '@/config/furniture';
 import { getMaterialById } from '@/config/materials';
@@ -14,7 +13,6 @@ interface GhostPreviewProps {
 }
 
 export const GhostPreview: React.FC<GhostPreviewProps> = ({ furnitureId, position, rotation }) => {
-  const groupRef = useRef<THREE.Group>(null);
   const { placedItems } = useSceneStore();
 
   const furniture = getFurnitureById(furnitureId);
@@ -47,17 +45,10 @@ export const GhostPreview: React.FC<GhostPreviewProps> = ({ furnitureId, positio
     });
   }, [materialConfig, canPlace]);
 
-  useFrame(() => {
-    if (groupRef.current) {
-      groupRef.current.position.set(...position);
-      groupRef.current.rotation.set(...rotation);
-    }
-  });
-
   if (!furniture || !ModelComponent) return null;
 
   return (
-    <group ref={groupRef}>
+    <group position={position} rotation={rotation}>
       <ModelComponent material={material} />
     </group>
   );
