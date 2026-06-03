@@ -26,7 +26,10 @@ export function RockLayers({ rockModel, opacity, showRockLayers }: RockLayersPro
 
         return (
           <group key={layer.id || index}>
-            <mesh position={[offsetX, offsetY, centerZ + offsetZ]}>
+            <mesh
+              position={[offsetX, offsetY, centerZ + offsetZ]}
+              renderOrder={-10}
+            >
               <boxGeometry args={[size.x, size.y, layerHeight]} />
               <meshStandardMaterial
                 color={layer.color}
@@ -35,11 +38,16 @@ export function RockLayers({ rockModel, opacity, showRockLayers }: RockLayersPro
                 side={THREE.DoubleSide}
                 roughness={0.8}
                 metalness={0.1}
+                depthWrite
+                depthTest
               />
             </mesh>
-            <lineSegments position={[offsetX, offsetY, centerZ + offsetZ]}>
+            <lineSegments
+              position={[offsetX, offsetY, centerZ + offsetZ]}
+              renderOrder={-9}
+            >
               <edgesGeometry args={[new THREE.BoxGeometry(size.x, size.y, layerHeight)]} />
-              <lineBasicMaterial color="#ffffff" opacity={0.2} transparent />
+              <lineBasicMaterial color="#ffffff" opacity={0.3} transparent />
             </lineSegments>
           </group>
         );

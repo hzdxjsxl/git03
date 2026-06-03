@@ -77,14 +77,14 @@ function SceneContent() {
         maxDistance={300}
       />
 
-      <EffectComposer>
+      {/* <EffectComposer>
         <Bloom
           intensity={1.5}
           luminanceThreshold={0.2}
           luminanceSmoothing={0.9}
           mipmapBlur
         />
-      </EffectComposer>
+      </EffectComposer> */}
     </>
   );
 }

@@ -1,4 +1,4 @@
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { WaveField as WaveFieldType, Vector3 } from '@/utils/waveSolver';
@@ -19,7 +19,8 @@ export function WaveField({ waveField, showPWave, showSWave, gridSize, cellSize 
   const pColorsRef = useRef<Float32Array | null>(null);
   const sPositionsRef = useRef<Float32Array | null>(null);
   const sColorsRef = useRef<Float32Array | null>(null);
-  const frameCountRef = useRef(0);
+  const [pCountState, setPCountState] = useState(0);
+  const [sCountState, setSCountState] = useState(0);
 
   const setWaveDistances = useSimulationStore((state) => state.setWaveDistances);
 
@@ -32,8 +33,6 @@ export function WaveField({ waveField, showPWave, showSWave, gridSize, cellSize 
 
   useFrame(() => {
     if (!waveField) return;
-
-    frameCountRef.current++;
 
     const source = waveField.source;
     let pMaxDist = 0;
@@ -72,7 +71,7 @@ export function WaveField({ waveField, showPWave, showSWave, gridSize, cellSize 
             dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
           }
 
-          if (showPWave && pDisp > 0.000000001 && pCount < maxPoints) {
+          if (showPWave && pDisp > 0.0000000001 && pCount < maxPoints) {
             const posIdx = pCount * 3;
             const colIdx = pCount * 4;
 
@@ -84,13 +83,13 @@ export function WaveField({ waveField, showPWave, showSWave, gridSize, cellSize 
             pColors[colIdx] = 1.0;
             pColors[colIdx + 1] = 0.42;
             pColors[colIdx + 2] = 0.21;
-            pColors[colIdx + 3] = Math.min(normalizedDisp * 1.5, 1.0);
+            pColors[colIdx + 3] = Math.min(normalizedDisp * 2, 1.0);
 
             pCount++;
             if (source) pMaxDist = Math.max(pMaxDist, dist);
           }
 
-          if (showSWave && sMag > 0.000000001 && sCount < maxPoints) {
+          if (showSWave && sMag > 0.0000000001 && sCount < maxPoints) {
             const posIdx = sCount * 3;
             const colIdx = sCount * 4;
 
@@ -102,7 +101,7 @@ export function WaveField({ waveField, showPWave, showSWave, gridSize, cellSize 
             sColors[colIdx] = 0.0;
             sColors[colIdx + 1] = 0.83;
             sColors[colIdx + 2] = 1.0;
-            sColors[colIdx + 3] = Math.min(normalizedMag * 1.5, 1.0);
+            sColors[colIdx + 3] = Math.min(normalizedMag * 2, 1.0);
 
             sCount++;
             if (source) sMaxDist = Math.max(sMaxDist, dist);
@@ -113,59 +112,52 @@ export function WaveField({ waveField, showPWave, showSWave, gridSize, cellSize 
 
     setWaveDistances(pMaxDist, sMaxDist);
 
-    if (showPWave && pPointsRef.current) {
+    if (showPWave && pPointsRef.current && pCount > 0) {
       const pGeometry = pPointsRef.current.geometry;
       const posAttribute = pGeometry.attributes.position as THREE.BufferAttribute;
       const colAttribute = pGeometry.attributes.color as THREE.BufferAttribute;
 
-      if (pCount > 0) {
-        const posArray = posAttribute.array as Float32Array;
-        const colArray = colAttribute.array as Float32Array;
-        for (let i = 0; i < pCount * 3; i++) {
-          posArray[i] = pPositions[i];
-        }
-        for (let i = 0; i < pCount * 4; i++) {
-          colArray[i] = pColors[i];
-        }
-        posAttribute.needsUpdate = true;
-        colAttribute.needsUpdate = true;
-        pGeometry.setDrawRange(0, pCount);
-        pPointsRef.current.visible = true;
-      } else {
-        pPointsRef.current.visible = false;
+      const posArray = posAttribute.array as Float32Array;
+      const colArray = colAttribute.array as Float32Array;
+      for (let i = 0; i < pCount * 3; i++) {
+        posArray[i] = pPositions[i];
       }
+      for (let i = 0; i < pCount * 4; i++) {
+        colArray[i] = pColors[i];
+      }
+      posAttribute.needsUpdate = true;
+      colAttribute.needsUpdate = true;
+      pGeometry.setDrawRange(0, pCount);
     }
 
-    if (showSWave && sPointsRef.current) {
+    if (showSWave && sPointsRef.current && sCount > 0) {
       const sGeometry = sPointsRef.current.geometry;
       const posAttribute = sGeometry.attributes.position as THREE.BufferAttribute;
       const colAttribute = sGeometry.attributes.color as THREE.BufferAttribute;
 
-      if (sCount > 0) {
-        const posArray = posAttribute.array as Float32Array;
-        const colArray = colAttribute.array as Float32Array;
-        for (let i = 0; i < sCount * 3; i++) {
-          posArray[i] = sPositions[i];
-        }
-        for (let i = 0; i < sCount * 4; i++) {
-          colArray[i] = sColors[i];
-        }
-        posAttribute.needsUpdate = true;
-        colAttribute.needsUpdate = true;
-        sGeometry.setDrawRange(0, sCount);
-        sPointsRef.current.visible = true;
-      } else {
-        sPointsRef.current.visible = false;
+      const posArray = posAttribute.array as Float32Array;
+      const colArray = colAttribute.array as Float32Array;
+      for (let i = 0; i < sCount * 3; i++) {
+        posArray[i] = sPositions[i];
       }
+      for (let i = 0; i < sCount * 4; i++) {
+        colArray[i] = sColors[i];
+      }
+      posAttribute.needsUpdate = true;
+      colAttribute.needsUpdate = true;
+      sGeometry.setDrawRange(0, sCount);
     }
+
+    if (pCount !== pCountState) setPCountState(pCount);
+    if (sCount !== sCountState) setSCountState(sCount);
   });
 
   if (!waveField) return null;
 
   return (
     <>
-      {showPWave && (
-        <points ref={pPointsRef}>
+      {showPWave && pCountState > 0 && (
+        <points ref={pPointsRef} renderOrder={10}>
           <bufferGeometry>
             <bufferAttribute
               attach="attributes-position"
@@ -183,7 +175,7 @@ export function WaveField({ waveField, showPWave, showSWave, gridSize, cellSize 
             />
           </bufferGeometry>
           <pointsMaterial
-            size={2.5}
+            size={1.5}
             vertexColors
             transparent
             opacity={1.0}
@@ -193,8 +185,8 @@ export function WaveField({ waveField, showPWave, showSWave, gridSize, cellSize 
           />
         </points>
       )}
-      {showSWave && (
-        <points ref={sPointsRef}>
+      {showSWave && sCountState > 0 && (
+        <points ref={sPointsRef} renderOrder={11}>
           <bufferGeometry>
             <bufferAttribute
               attach="attributes-position"
@@ -212,7 +204,7 @@ export function WaveField({ waveField, showPWave, showSWave, gridSize, cellSize 
             />
           </bufferGeometry>
           <pointsMaterial
-            size={2.5}
+            size={1.5}
             vertexColors
             transparent
             opacity={1.0}
