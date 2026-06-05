@@ -93,22 +93,22 @@ class MainWindow(QMainWindow):
                 smoothed_gesture, smoothed_confidence = self.result_smoother.get_smoothed_prediction()
                 
                 if smoothed_gesture is not None:
-                    new_char = self.text_aggregator.update(smoothed_gesture)
-                    
-                    if new_char:
-                        self.result_display.update_text(self.text_aggregator.get_text())
-                    
+                    self.text_aggregator.update(smoothed_gesture)
                     self.result_display.update_current_gesture(smoothed_gesture, smoothed_confidence)
                 else:
                     self.result_display.update_current_gesture(None, 0)
+                
+                self.result_display.update_text(self.text_aggregator.get_text())
             else:
                 self.result_smoother.add_prediction(None, 0)
                 self.text_aggregator.update(None)
                 self.result_display.update_current_gesture(None, 0)
+                self.result_display.update_text(self.text_aggregator.get_text())
         else:
             self.result_smoother.add_prediction(None, 0)
             self.text_aggregator.update(None)
             self.result_display.update_current_gesture(None, 0)
+            self.result_display.update_text(self.text_aggregator.get_text())
         
         self.display_frame(frame)
         

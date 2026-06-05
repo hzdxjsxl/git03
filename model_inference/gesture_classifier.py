@@ -143,8 +143,8 @@ class RuleBasedGestureClassifier:
         finger_match = sum(1 for i in range(5) if fingers[i] == rule['fingers'][i])
         base_score = finger_match / 5.0
         
-        if finger_match < 4:
-            return base_score * 0.5
+        if finger_match < 3:
+            return base_score * 0.3
         
         return base_score
     

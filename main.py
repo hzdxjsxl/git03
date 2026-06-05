@@ -50,7 +50,7 @@ def main():
         print("  结果平滑器初始化成功")
         
         print("\n[6/6] 初始化文本聚合器...")
-        text_aggregator = TextAggregator(min_stable_frames=10, cooldown_frames=20)
+        text_aggregator = TextAggregator(min_stable_frames=5, cooldown_frames=15)
         print("  文本聚合器初始化成功")
         
         print("\n正在初始化用户界面...")

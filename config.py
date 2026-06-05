@@ -21,7 +21,7 @@ MODEL_CONFIG = {
     'model_path': os.path.join(BASE_DIR, 'models', 'gesture_classifier.pth'),
     'num_classes': 26,
     'smoothing_window': 5,
-    'confidence_threshold': 0.7,
+    'confidence_threshold': 0.5,
 }
 
 UI_CONFIG = {
