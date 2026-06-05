@@ -78,8 +78,8 @@ export const VirtualFeed = memo(function VirtualFeed({
 
   const handleScroll = useCallback(
     (props: GridOnScrollProps) => {
-      const { scrollTop } = props as unknown as { scrollTop: number };
-      if (scrollTop + height >= height * 2 && hasMore && !loading) {
+      const { scrollTop, scrollHeight } = props as unknown as { scrollTop: number; scrollHeight: number };
+      if (scrollTop + height >= scrollHeight - 500 && hasMore && !loading) {
         onLoadMore();
       }
     },
@@ -118,7 +118,7 @@ export const VirtualFeed = memo(function VirtualFeed({
 
       {!hasMore && articles.length > 0 && (
         <div className="text-center py-8 text-zinc-500 text-sm">
-          已加载全部内容
+          All content loaded
         </div>
       )}
     </div>

@@ -4,14 +4,12 @@ import { Sparkles, Trash2, Plus, Info } from 'lucide-react';
 import { useState } from 'react';
 
 export default function FeatureManagement() {
-  const { features, setFeatureWeight, resetProfile } = useFeedStore((state) => ({
-    features: state.features,
-    setFeatureWeight: state.setFeatureWeight,
-    resetProfile: state.resetProfile,
-  }));
+  const features = useFeedStore((state) => state.features);
+  const setFeatureWeight = useFeedStore((state) => state.setFeatureWeight);
+  const resetProfile = useFeedStore((state) => state.resetProfile);
+  const addFeature = useFeedStore((state) => state.addFeature);
 
   const [newFeature, setNewFeature] = useState('');
-  const addFeature = useFeedStore((state) => state.addFeature);
 
   const handleAddFeature = () => {
     if (newFeature.trim()) {
