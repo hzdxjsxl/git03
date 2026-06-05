@@ -20,24 +20,28 @@ class ResultSmoother:
         valid_predictions = [p for p in self.predictions_queue if p is not None]
         valid_confidences = [c for c, p in zip(self.confidences_queue, self.predictions_queue) if p is not None]
         
-        if len(valid_predictions) < max(1, self.window_size // 2):
+        if len(valid_predictions) < 1:
             return None, 0.0
             
         prediction_array = np.array(valid_predictions)
         confidence_array = np.array(valid_confidences)
         
-        weighted_counts = {}
-        for pred, conf in zip(prediction_array, confidence_array):
-            if pred not in weighted_counts:
-                weighted_counts[pred] = 0
-            weighted_counts[pred] += conf
+        counts = {}
+        for pred in prediction_array:
+            if pred not in counts:
+                counts[pred] = 0
+            counts[pred] += 1
             
-        if not weighted_counts:
+        if not counts:
             return None, 0.0
             
-        best_pred = max(weighted_counts, key=weighted_counts.get)
-        total_weight = sum(weighted_counts.values())
-        avg_confidence = weighted_counts[best_pred] / len(valid_predictions)
+        best_pred = max(counts, key=counts.get)
+        
+        if counts[best_pred] < 1:
+            return None, 0.0
+        
+        best_indices = [i for i, p in enumerate(prediction_array) if p == best_pred]
+        avg_confidence = np.mean([confidence_array[i] for i in best_indices])
         
         return best_pred, avg_confidence
         

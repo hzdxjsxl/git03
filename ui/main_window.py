@@ -79,10 +79,11 @@ class MainWindow(QMainWindow):
         confidence = 0.0
         
         if landmarks_list and len(landmarks_list) > 0:
-            features = self.feature_extractor.extract_features(landmarks_list[0])
+            landmarks = landmarks_list[0]
+            features = self.feature_extractor.extract_features(landmarks)
             
             if features is not None:
-                predicted_class, confidence = self.gesture_classifier.predict(features)
+                predicted_class, confidence = self.gesture_classifier.predict(features, landmarks)
                 
                 gesture_label = None
                 if predicted_class is not None:

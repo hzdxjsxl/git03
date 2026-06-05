@@ -180,7 +180,7 @@ class RuleBasedGestureClassifier:
 
 
 class GestureClassifier:
-    def __init__(self, model_path=None):
+    def __init__(self, model_path=None, use_rule_based=True):
         self.input_size = 103
         self.num_classes = MODEL_CONFIG['num_classes']
         self.confidence_threshold = MODEL_CONFIG['confidence_threshold']
@@ -191,6 +191,11 @@ class GestureClassifier:
         self.torch_model = None
         self.numpy_model = None
         self.device = None
+        
+        if use_rule_based:
+            print("使用基于规则的手势分类器（演示模式）")
+            self.backend = 'rule'
+            return
         
         if TORCH_AVAILABLE:
             try:
@@ -231,7 +236,16 @@ class GestureClassifier:
             self.torch_model.load_state_dict(checkpoint)
         print(f"PyTorch模型加载成功: {model_path}")
             
-    def predict(self, features):
+    def predict(self, features, landmarks=None):
+        if features is None and landmarks is None:
+            return None, 0.0
+            
+        if self.backend == 'rule' and landmarks is not None:
+            class_idx, confidence = self.rule_classifier.classify(landmarks)
+            if confidence > self.confidence_threshold:
+                return class_idx, confidence
+            return None, confidence
+            
         if features is None:
             return None, 0.0
             
@@ -261,11 +275,11 @@ class GestureClassifier:
                 
             return predicted_class, confidence
         else:
-            landmarks = features[:63].reshape(21, 3)
-            class_idx, confidence = self.rule_classifier.classify(landmarks)
-            if confidence > self.confidence_threshold:
-                return class_idx, confidence
-            return None, confidence
+            if landmarks is not None:
+                class_idx, confidence = self.rule_classifier.classify(landmarks)
+                if confidence > self.confidence_threshold:
+                    return class_idx, confidence
+            return None, 0.0
             
     def get_gesture_label(self, class_idx):
         return GESTURE_MAP.get(class_idx, None)
