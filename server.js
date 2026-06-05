@@ -9,13 +9,13 @@ app.use(cors());
 app.use(express.static(path.join(__dirname, 'public')));
 
 const deviceData = {
-  'conveyor_0': { name: '主传送带A', temperature: 42, capacity: 120, status: 'running' },
-  'conveyor_1': { name: '主传送带B', temperature: 38, capacity: 95, status: 'running' },
+  'conveyor_0': { name: '主传送带A', temperature: 42, capacity: 90, status: 'running' },
+  'conveyor_1': { name: '主传送带B', temperature: 38, capacity: 85, status: 'running' },
   'robot_0': { name: '机械臂A1', temperature: 55, capacity: 80, status: 'working' },
-  'robot_1': { name: '机械臂A2', temperature: 62, capacity: 75, status: 'working' },
+  'robot_1': { name: '机械臂A2', temperature: 72, capacity: 20, status: 'overheat' },
   'robot_2': { name: '机械臂B1', temperature: 48, capacity: 90, status: 'working' },
-  'machine_0': { name: '加工中心A', temperature: 72, capacity: 60, status: 'running' },
-  'machine_1': { name: '加工中心B', temperature: 68, capacity: 85, status: 'running' },
+  'machine_0': { name: '加工中心A', temperature: 78, capacity: 15, status: 'fault' },
+  'machine_1': { name: '加工中心B', temperature: 58, capacity: 75, status: 'running' },
 };
 
 app.get('/api/device/:id', (req, res) => {

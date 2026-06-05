@@ -79,7 +79,7 @@ class DigitalTwinApp {
 
     animationController.update(deltaTime);
 
-    dataVisualizer.update();
+    dataVisualizer.update(deltaTime);
 
     this.renderer.render(this.scene, this.camera);
   }
