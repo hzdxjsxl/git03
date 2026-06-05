@@ -6,15 +6,15 @@ class DataVisualizer {
     this.devices = [];
     this.deviceData = {};
     this.labels = [];
-    this.clusterGroups = [];
+    this.clusterSprites = [];
     this.raycaster = new THREE.Raycaster();
     this.mouse = new THREE.Vector2();
     this.hoveredDevice = null;
     this.tooltip = null;
     this.deviceListContainer = null;
     this.time = 0;
-    this.clusterThreshold = 60;
-    this.detailThreshold = 35;
+    this.clusterDistance = 50;
+    this.detailDistance = 30;
   }
 
   init(scene, camera, renderer, devices) {
@@ -25,160 +25,138 @@ class DataVisualizer {
     this.tooltip = document.getElementById('tooltip');
     this.deviceListContainer = document.getElementById('device-list');
 
-    this.createDataLabels();
-    this.createClusterGroups();
+    this.createDetailLabels();
+    this.createClusterLabels();
     this.setupEventListeners();
   }
 
-  createDataLabels() {
+  createDetailLabels() {
     this.devices.forEach(device => {
-      const label = this.createLabelSprite(device);
-      this.labels.push({ device, sprite: label, visible: true });
-      this.scene.add(label);
-    });
-  }
-
-  createClusterGroups() {
-    const groups = [
-      { id: 'cluster_robots', deviceIds: ['robot_0', 'robot_1', 'robot_2'], center: new THREE.Vector3(0, 6, 0) },
-      { id: 'cluster_conveyors', deviceIds: ['conveyor_0', 'conveyor_1'], center: new THREE.Vector3(-8, 4, 0) },
-      { id: 'cluster_machines', deviceIds: ['machine_0', 'machine_1'], center: new THREE.Vector3(0, 6, 0) }
-    ];
-
-    groups.forEach(group => {
-      const sprite = this.createClusterSprite(group);
-      sprite.visible = false;
-      this.clusterGroups.push({ ...group, sprite, visible: false });
+      const sprite = this.createSingleLabel(device);
+      this.labels.push({
+        deviceId: device.id,
+        device: device,
+        sprite: sprite
+      });
       this.scene.add(sprite);
     });
   }
 
-  createClusterSprite(group) {
+  createSingleLabel(device) {
     const canvas = document.createElement('canvas');
-    canvas.width = 128;
+    canvas.width = 256;
     canvas.height = 128;
     const ctx = canvas.getContext('2d');
 
-    this.drawCluster(ctx, group.id, group.deviceIds.length, 0);
-
     const texture = new THREE.CanvasTexture(canvas);
+    texture.needsUpdate = true;
+
     const material = new THREE.SpriteMaterial({
       map: texture,
       transparent: true,
       depthTest: false
     });
+
     const sprite = new THREE.Sprite(material);
-    sprite.scale.set(6, 6, 1);
-    sprite.position.copy(group.center);
-
-    sprite.userData = { groupId: group.id, canvas, ctx, deviceCount: group.deviceIds.length };
-    return sprite;
-  }
-
-  drawCluster(ctx, groupId, deviceCount, alertCount) {
-    const width = 128;
-    const height = 128;
-    const centerX = width / 2;
-    const centerY = height / 2;
-    const radius = 50;
-
-    ctx.clearRect(0, 0, width, height);
-
-    const hasAlert = alertCount > 0;
-    const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
-    
-    if (hasAlert) {
-      gradient.addColorStop(0, 'rgba(255, 68, 68, 0.9)');
-      gradient.addColorStop(0.7, 'rgba(200, 40, 40, 0.8)');
-      gradient.addColorStop(1, 'rgba(150, 20, 20, 0)');
-    } else {
-      gradient.addColorStop(0, 'rgba(0, 200, 255, 0.8)');
-      gradient.addColorStop(0.7, 'rgba(0, 150, 200, 0.6)');
-      gradient.addColorStop(1, 'rgba(0, 100, 150, 0)');
-    }
-
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-    ctx.fillStyle = gradient;
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, radius - 8, 0, Math.PI * 2);
-    ctx.fillStyle = hasAlert ? 'rgba(255, 100, 100, 0.95)' : 'rgba(0, 180, 230, 0.95)';
-    ctx.fill();
-
-    ctx.strokeStyle = hasAlert ? '#ff8888' : '#88eeff';
-    ctx.lineWidth = 3;
-    ctx.stroke();
-
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 32px Microsoft YaHei';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(deviceCount.toString(), centerX, centerY - 8);
-
-    ctx.font = '12px Microsoft YaHei';
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-    ctx.fillText('台设备', centerX, centerY + 20);
-
-    if (hasAlert) {
-      ctx.fillStyle = '#ffff00';
-      ctx.font = 'bold 14px Microsoft YaHei';
-      ctx.fillText(`⚠ ${alertCount}异常`, centerX, centerY + 42);
-    }
-  }
-
-  createLabelSprite(device) {
-    const canvas = document.createElement('canvas');
-    canvas.width = 256;
-    canvas.height = 140;
-    const ctx = canvas.getContext('2d');
-
-    this.drawLabel(ctx, device.id, '--', '--', false, false);
-
-    const texture = new THREE.CanvasTexture(canvas);
-    const material = new THREE.SpriteMaterial({
-      map: texture,
-      transparent: true,
-      depthTest: false
-    });
-    const sprite = new THREE.Sprite(material);
-    sprite.scale.set(8, 4.4, 1);
+    sprite.scale.set(8, 4, 1);
 
     const box = new THREE.Box3().setFromObject(device.mesh);
     const center = box.getCenter(new THREE.Vector3());
     const size = box.getSize(new THREE.Vector3());
     sprite.position.set(center.x, center.y + size.y / 2 + 3, center.z);
 
-    sprite.userData = { deviceId: device.id, canvas, ctx, isAlert: false, isWarning: false };
+    sprite.userData = {
+      deviceId: device.id,
+      canvas: canvas,
+      ctx: ctx,
+      texture: texture,
+      isAlert: false,
+      basePosition: sprite.position.clone()
+    };
+
     return sprite;
   }
 
-  drawLabel(ctx, deviceId, temperature, capacity, isAlert, isWarning) {
+  createClusterLabels() {
+    const clusterConfigs = [
+      {
+        id: 'cluster_robots',
+        deviceIds: ['robot_0', 'robot_1', 'robot_2'],
+        center: new THREE.Vector3(0, 8, -5)
+      },
+      {
+        id: 'cluster_conveyors',
+        deviceIds: ['conveyor_0', 'conveyor_1'],
+        center: new THREE.Vector3(-8, 5, 0)
+      },
+      {
+        id: 'cluster_machines',
+        deviceIds: ['machine_0', 'machine_1'],
+        center: new THREE.Vector3(0, 7, 0)
+      }
+    ];
+
+    clusterConfigs.forEach(config => {
+      const sprite = this.createClusterSprite(config);
+      this.clusterSprites.push({
+        ...config,
+        sprite: sprite,
+        alertCount: 0
+      });
+      this.scene.add(sprite);
+    });
+  }
+
+  createClusterSprite(config) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 128;
+    canvas.height = 128;
+    const ctx = canvas.getContext('2d');
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.needsUpdate = true;
+
+    const material = new THREE.SpriteMaterial({
+      map: texture,
+      transparent: true,
+      depthTest: false
+    });
+
+    const sprite = new THREE.Sprite(material);
+    sprite.scale.set(5, 5, 1);
+    sprite.position.copy(config.center);
+    sprite.visible = false;
+
+    sprite.userData = {
+      clusterId: config.id,
+      canvas: canvas,
+      ctx: ctx,
+      texture: texture,
+      deviceCount: config.deviceIds.length
+    };
+
+    return sprite;
+  }
+
+  drawLabel(ctx, deviceId, temperature, capacity, isAlert, isWarning, flashIntensity) {
     const width = 256;
-    const height = 140;
+    const height = 128;
 
     ctx.clearRect(0, 0, width, height);
 
     let bgColor = 'rgba(10, 20, 40, 0.9)';
-    let borderColor = 'rgba(0, 200, 255, 0.5)';
+    let borderColor = 'rgba(0, 200, 255, 0.6)';
     let titleColor = '#00d4ff';
-    let glowIntensity = 0;
 
     if (isAlert) {
-      bgColor = 'rgba(60, 10, 10, 0.95)';
-      borderColor = '#ff3333';
-      titleColor = '#ff6666';
-      glowIntensity = 0.6 + Math.sin(this.time * 15) * 0.4;
+      const intensity = 0.5 + flashIntensity * 0.5;
+      bgColor = `rgba(80, 10, 10, ${0.85 + flashIntensity * 0.15})`;
+      borderColor = `rgba(255, 50, 50, ${0.6 + flashIntensity * 0.4})`;
+      titleColor = '#ff4444';
     } else if (isWarning) {
       bgColor = 'rgba(60, 40, 10, 0.9)';
-      borderColor = '#ffaa00';
+      borderColor = 'rgba(255, 170, 0, 0.6)';
       titleColor = '#ffcc00';
-    }
-
-    if (isAlert) {
-      ctx.shadowColor = '#ff0000';
-      ctx.shadowBlur = 20 * glowIntensity;
     }
 
     ctx.fillStyle = bgColor;
@@ -186,43 +164,88 @@ class DataVisualizer {
     ctx.roundRect(0, 0, width, height, 12);
     ctx.fill();
 
-    ctx.shadowBlur = 0;
-
-    ctx.strokeStyle = isAlert ? `rgba(255, 50, 50, ${0.5 + glowIntensity * 0.5})` : borderColor;
+    ctx.strokeStyle = borderColor;
     ctx.lineWidth = isAlert ? 3 : 2;
     ctx.stroke();
 
     if (isAlert) {
       ctx.fillStyle = '#ff3333';
-      ctx.font = 'bold 14px Microsoft YaHei';
+      ctx.font = 'bold 12px Microsoft YaHei';
       ctx.textAlign = 'left';
-      ctx.fillText('⚠ 异常警告', 15, 22);
+      ctx.fillText('⚠ 异常', 15, 20);
     }
 
     ctx.fillStyle = titleColor;
-    ctx.font = 'bold 18px Microsoft YaHei';
+    ctx.font = 'bold 16px Microsoft YaHei';
     ctx.textAlign = 'center';
-    ctx.fillText(this.getDeviceName(deviceId), width / 2, isAlert ? 50 : 35);
+    ctx.fillText(this.getDeviceName(deviceId), width / 2, isAlert ? 42 : 32);
 
-    ctx.fillStyle = '#888';
-    ctx.font = '14px Microsoft YaHei';
+    ctx.fillStyle = '#999';
+    ctx.font = '13px Microsoft YaHei';
     ctx.textAlign = 'left';
-    ctx.fillText('温度', 25, isAlert ? 85 : 70);
-    ctx.fillText('产能', 25, isAlert ? 115 : 100);
+    ctx.fillText('温度', 20, isAlert ? 72 : 62);
+    ctx.fillText('产能', 20, isAlert ? 100 : 90);
 
     const tempColor = temperature === '--' ? '#666' : 
-                      temperature > 60 ? '#ff3333' :
-                      temperature > 50 ? '#ffaa00' : '#4ecdc4';
+                      temperature > 65 ? '#ff3333' :
+                      temperature > 55 ? '#ffaa00' : '#4ecdc4';
     ctx.fillStyle = tempColor;
-    ctx.font = 'bold 20px Microsoft YaHei';
+    ctx.font = 'bold 18px Microsoft YaHei';
     ctx.textAlign = 'right';
-    ctx.fillText(temperature === '--' ? '-- °C' : `${temperature} °C`, width - 25, isAlert ? 85 : 70);
+    ctx.fillText(temperature === '--' ? '-- °C' : `${temperature} °C`, width - 20, isAlert ? 72 : 62);
 
     const capacityColor = capacity === '--' ? '#666' :
-                          capacity < 30 ? '#ff3333' :
-                          capacity < 50 ? '#ffaa00' : '#4ecdc4';
+                          capacity < 25 ? '#ff3333' :
+                          capacity < 40 ? '#ffaa00' : '#4ecdc4';
     ctx.fillStyle = capacityColor;
-    ctx.fillText(capacity === '--' ? '-- %' : `${capacity} %`, width - 25, isAlert ? 115 : 100);
+    ctx.fillText(capacity === '--' ? '-- %' : `${capacity} %`, width - 20, isAlert ? 100 : 90);
+  }
+
+  drawCluster(ctx, deviceCount, hasAlert, alertCount, pulseIntensity) {
+    const width = 128;
+    const height = 128;
+    const cx = width / 2;
+    const cy = height / 2;
+
+    ctx.clearRect(0, 0, width, height);
+
+    const radius = 48 + pulseIntensity * 6;
+    const mainColor = hasAlert ? '255, 80, 80' : '0, 180, 230';
+
+    const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+    gradient.addColorStop(0, `rgba(${mainColor}, 0.9)`);
+    gradient.addColorStop(0.6, `rgba(${mainColor}, 0.6)`);
+    gradient.addColorStop(1, `rgba(${mainColor}, 0)`);
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+    ctx.fillStyle = gradient;
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius - 10, 0, Math.PI * 2);
+    ctx.fillStyle = hasAlert ? 'rgba(200, 40, 40, 0.95)' : 'rgba(0, 150, 200, 0.95)';
+    ctx.fill();
+
+    ctx.strokeStyle = hasAlert ? '#ff8888' : '#88eeff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 28px Microsoft YaHei';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(deviceCount.toString(), cx, cy - 5);
+
+    ctx.font = '11px Microsoft YaHei';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+    ctx.fillText('台设备', cx, cy + 18);
+
+    if (hasAlert) {
+      ctx.fillStyle = '#ffff00';
+      ctx.font = 'bold 12px Microsoft YaHei';
+      ctx.fillText(`⚠ ${alertCount}异常`, cx, cy + 38);
+    }
   }
 
   getDeviceName(deviceId) {
@@ -238,55 +261,40 @@ class DataVisualizer {
     return names[deviceId] || deviceId;
   }
 
-  checkDeviceAlert(temperature, capacity) {
-    if (temperature === '--' || capacity === '--') return { isAlert: false, isWarning: false };
-    
-    const isTempCritical = temperature > 65;
-    const isTempWarning = temperature > 55;
-    const isCapacityCritical = capacity < 25;
-    const isCapacityWarning = capacity < 40;
-
-    return {
-      isAlert: isTempCritical || isCapacityCritical,
-      isWarning: (isTempWarning || isCapacityWarning) && !(isTempCritical || isCapacityCritical)
-    };
+  checkAlertStatus(temperature, capacity) {
+    if (temperature === '--' || capacity === '--') {
+      return { isAlert: false, isWarning: false };
+    }
+    const isAlert = temperature > 65 || capacity < 25;
+    const isWarning = (temperature > 55 || capacity < 40) && !isAlert;
+    return { isAlert, isWarning };
   }
 
   updateDeviceData(deviceData) {
     this.deviceData = deviceData;
 
-    this.labels.forEach(({ sprite }) => {
-      const { deviceId, canvas, ctx } = sprite.userData;
-      const data = deviceData[deviceId];
+    this.labels.forEach(label => {
+      const data = deviceData[label.deviceId];
       if (data) {
-        const { isAlert, isWarning } = this.checkDeviceAlert(data.temperature, data.capacity);
-        sprite.userData.isAlert = isAlert;
-        sprite.userData.isWarning = isWarning;
-        this.drawLabel(ctx, deviceId, data.temperature, data.capacity, isAlert, isWarning);
-        sprite.material.map.needsUpdate = true;
+        const { isAlert, isWarning } = this.checkAlertStatus(data.temperature, data.capacity);
+        label.sprite.userData.isAlert = isAlert;
+        label.sprite.userData.isWarning = isWarning;
       }
     });
 
-    this.updateClusterData(deviceData);
-    this.updateDeviceList(deviceData);
-  }
-
-  updateClusterData(deviceData) {
-    this.clusterGroups.forEach(group => {
+    this.clusterSprites.forEach(cluster => {
       let alertCount = 0;
-      group.deviceIds.forEach(id => {
+      cluster.deviceIds.forEach(id => {
         const data = deviceData[id];
         if (data) {
-          const { isAlert } = this.checkDeviceAlert(data.temperature, data.capacity);
+          const { isAlert } = this.checkAlertStatus(data.temperature, data.capacity);
           if (isAlert) alertCount++;
         }
       });
-
-      const { canvas, ctx, deviceCount } = group.sprite.userData;
-      this.drawCluster(ctx, group.id, deviceCount, alertCount);
-      group.sprite.material.map.needsUpdate = true;
-      group.alertCount = alertCount;
+      cluster.alertCount = alertCount;
     });
+
+    this.updateDeviceList(deviceData);
   }
 
   updateDeviceList(deviceData) {
@@ -295,17 +303,14 @@ class DataVisualizer {
     this.deviceListContainer.innerHTML = '';
 
     Object.entries(deviceData).forEach(([id, data]) => {
-      const item = document.createElement('div');
-      const { isAlert, isWarning } = this.checkDeviceAlert(data.temperature, data.capacity);
+      const { isAlert, isWarning } = this.checkAlertStatus(data.temperature, data.capacity);
       
+      const item = document.createElement('div');
       item.className = 'device-item';
-      if (isAlert) {
-        item.classList.add('danger');
-      } else if (isWarning) {
-        item.classList.add('warning');
-      }
+      if (isAlert) item.classList.add('danger');
+      else if (isWarning) item.classList.add('warning');
 
-      const alertBadge = isAlert ? '<span style="color:#ff3333;animation:pulse 0.5s infinite;"> ⚠</span>' : '';
+      const alertBadge = isAlert ? '<span style="color:#ff3333;"> ⚠</span>' : '';
 
       item.innerHTML = `
         <div class="device-name">${this.getDeviceName(id)}${alertBadge}</div>
@@ -326,7 +331,6 @@ class DataVisualizer {
       const rect = canvas.getBoundingClientRect();
       this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
       this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
       this.updateHover(event.clientX, event.clientY);
     });
 
@@ -338,24 +342,23 @@ class DataVisualizer {
   updateHover(clientX, clientY) {
     this.raycaster.setFromCamera(this.mouse, this.camera);
 
-    const allSprites = [...this.labels.filter(l => l.visible).map(l => l.sprite), 
-                       ...this.clusterGroups.filter(g => g.visible).map(g => g.sprite)];
+    const visibleLabels = this.labels.filter(l => l.sprite.visible).map(l => l.sprite);
+    const visibleClusters = this.clusterSprites.filter(c => c.sprite.visible).map(c => c.sprite);
+    const allSprites = [...visibleLabels, ...visibleClusters];
     
     const intersects = this.raycaster.intersectObjects(allSprites);
 
     if (intersects.length > 0) {
-      const clickedSprite = intersects[0].object;
+      const sprite = intersects[0].object;
       
-      if (clickedSprite.userData.groupId) {
-        const group = this.clusterGroups.find(g => g.id === clickedSprite.userData.groupId);
-        if (group) {
-          this.showClusterTooltip(group, clientX, clientY);
-        }
-      } else if (clickedSprite.userData.deviceId) {
-        const device = this.devices.find(d => d.id === clickedSprite.userData.deviceId);
+      if (sprite.userData.clusterId) {
+        const cluster = this.clusterSprites.find(c => c.id === sprite.userData.clusterId);
+        if (cluster) this.showClusterTooltip(cluster, clientX, clientY);
+      } else if (sprite.userData.deviceId) {
+        const device = this.devices.find(d => d.id === sprite.userData.deviceId);
         if (device) {
           this.hoveredDevice = device;
-          this.showTooltip(device, clientX, clientY);
+          this.showDeviceTooltip(device, clientX, clientY);
         }
       }
     } else {
@@ -364,17 +367,17 @@ class DataVisualizer {
     }
   }
 
-  showClusterTooltip(group, clientX, clientY) {
+  showClusterTooltip(cluster, clientX, clientY) {
     if (!this.tooltip) return;
 
-    const deviceNames = group.deviceIds.map(id => this.getDeviceName(id)).join(', ');
+    const deviceNames = cluster.deviceIds.map(id => this.getDeviceName(id)).join(', ');
 
     this.tooltip.innerHTML = `
       <div class="tooltip-title">设备组</div>
       <div class="tooltip-content">
-        <div class="row"><span class="label">设备数量:</span><span>${group.deviceIds.length} 台</span></div>
-        <div class="row"><span class="label">异常数量:</span><span style="color:${group.alertCount > 0 ? '#ff3333' : '#4ecdc4'}">${group.alertCount || 0} 台</span></div>
-        <div class="row"><span class="label">包含设备:</span><span style="font-size:10px;">${deviceNames}</span></div>
+        <div class="row"><span class="label">设备数:</span><span>${cluster.deviceIds.length} 台</span></div>
+        <div class="row"><span class="label">异常数:</span><span style="color:${cluster.alertCount > 0 ? '#ff3333' : '#4ecdc4'}">${cluster.alertCount} 台</span></div>
+        <div class="row"><span class="label">包含:</span><span style="font-size:10px;">${deviceNames}</span></div>
       </div>
     `;
 
@@ -382,14 +385,14 @@ class DataVisualizer {
     this.updateTooltipPosition(clientX, clientY);
   }
 
-  showTooltip(device, clientX, clientY) {
+  showDeviceTooltip(device, clientX, clientY) {
     if (!this.tooltip) return;
 
     const data = this.deviceData[device.id] || { temperature: '--', capacity: '--', status: 'unknown' };
-    const { isAlert, isWarning } = this.checkDeviceAlert(data.temperature, data.capacity);
+    const { isAlert, isWarning } = this.checkAlertStatus(data.temperature, data.capacity);
     
-    const alertText = isAlert ? '<span style="color:#ff3333;"> ⚠ 异常状态</span>' : 
-                      isWarning ? '<span style="color:#ffaa00;"> ⚠ 警告状态</span>' : '';
+    const alertText = isAlert ? ' <span style="color:#ff3333;">⚠异常</span>' : 
+                      isWarning ? ' <span style="color:#ffaa00;">⚠警告</span>' : '';
 
     this.tooltip.innerHTML = `
       <div class="tooltip-title">${this.getDeviceName(device.id)}${alertText}</div>
@@ -407,12 +410,8 @@ class DataVisualizer {
 
   updateTooltipPosition(clientX, clientY) {
     if (!this.tooltip) return;
-
-    const x = clientX + 15;
-    const y = clientY + 15;
-
-    this.tooltip.style.left = `${x}px`;
-    this.tooltip.style.top = `${y}px`;
+    this.tooltip.style.left = `${clientX + 15}px`;
+    this.tooltip.style.top = `${clientY + 15}px`;
   }
 
   hideTooltip() {
@@ -425,30 +424,54 @@ class DataVisualizer {
   update(deltaTime) {
     this.time += deltaTime;
 
-    const cameraDistance = this.camera.position.length();
+    const targetPosition = new THREE.Vector3(0, 5, 0);
+    const distance = this.camera.position.distanceTo(targetPosition);
 
-    const showDetails = cameraDistance < this.detailThreshold;
-    const showClusters = cameraDistance > this.clusterThreshold;
+    const showDetails = distance < this.detailDistance;
+    const showClusters = distance > this.clusterDistance;
 
-    this.labels.forEach(({ sprite }) => {
-      sprite.visible = showDetails;
-      sprite.quaternion.copy(this.camera.quaternion);
+    const flashIntensity = (Math.sin(this.time * 10) + 1) / 2;
+    const pulseIntensity = (Math.sin(this.time * 6) + 1) / 2;
 
-      if (sprite.userData.isAlert) {
-        const flash = (Math.sin(this.time * 12) + 1) / 2;
-        sprite.material.opacity = 0.7 + flash * 0.3;
-        sprite.scale.setScalar(8 + flash * 0.5);
-        sprite.scale.y = 4.4 + flash * 0.3;
+    this.labels.forEach(label => {
+      label.sprite.visible = showDetails;
+      label.sprite.quaternion.copy(this.camera.quaternion);
+
+      if (showDetails) {
+        const data = this.deviceData[label.deviceId];
+        const temp = data ? data.temperature : '--';
+        const cap = data ? data.capacity : '--';
+        const { isAlert, isWarning } = this.checkAlertStatus(temp, cap);
+
+        const alertFlash = isAlert ? flashIntensity : 0;
+        
+        const { canvas, ctx, texture } = label.sprite.userData;
+        this.drawLabel(ctx, label.deviceId, temp, cap, isAlert, isWarning, alertFlash);
+        texture.needsUpdate = true;
+
+        if (isAlert) {
+          const scale = 1 + flashIntensity * 0.1;
+          label.sprite.scale.set(8 * scale, 4 * scale, 1);
+        }
       }
     });
 
-    this.clusterGroups.forEach(group => {
-      group.sprite.visible = showClusters;
-      group.sprite.quaternion.copy(this.camera.quaternion);
+    this.clusterSprites.forEach(cluster => {
+      cluster.sprite.visible = showClusters;
+      cluster.sprite.quaternion.copy(this.camera.quaternion);
 
-      if (group.alertCount > 0) {
-        const pulse = 1 + Math.sin(this.time * 8) * 0.15;
-        group.sprite.scale.setScalar(6 * pulse);
+      if (showClusters) {
+        const hasAlert = cluster.alertCount > 0;
+        const pulse = hasAlert ? pulseIntensity : 0;
+        
+        const { canvas, ctx, texture, deviceCount } = cluster.sprite.userData;
+        this.drawCluster(ctx, deviceCount, hasAlert, cluster.alertCount, pulse);
+        texture.needsUpdate = true;
+
+        if (hasAlert) {
+          const scale = 5 + pulseIntensity * 0.8;
+          cluster.sprite.scale.set(scale, scale, 1);
+        }
       }
     });
   }
