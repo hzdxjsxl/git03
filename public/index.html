@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>智慧工厂三维数字孪生看板</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+    <header class="header">
+      <h1>智慧工厂三维数字孪生看板</h1>
+      <div class="status-bar">
+        <span>实时监控</span>
+        <span class="indicator active"></span>
+      </div>
+    </header>
+    
+    <div id="canvas-container"></div>
+    
+    <div class="info-panel">
+      <div class="panel-title">设备概览</div>
+      <div id="device-list"></div>
+    </div>
+    
+    <div class="control-panel">
+      <div class="panel-title">视角控制</div>
+      <button id="view-all">全景</button>
+      <button id="view-conveyor">传送带</button>
+      <button id="view-robots">机械臂</button>
+      <button id="toggle-animation">暂停动画</button>
+    </div>
+    
+    <div id="tooltip" class="tooltip"></div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
