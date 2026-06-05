@@ -1,0 +1,19 @@
+{
+  "name": "esports-analytics-dashboard",
+  "version": "1.0.0",
+  "description": "电子竞技选手赛后数据分析面板",
+  "scripts": {
+    "generate-mock": "node scripts/generate-mock.js",
+    "dev:server": "cd server && npm start",
+    "dev:client": "cd client && npm run dev",
+    "install:all": "npm install && cd server && npm install && cd ../client && npm install",
+    "start": "npm run generate-mock && concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\""
+  },
+  "keywords": ["esports", "analytics", "dashboard"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

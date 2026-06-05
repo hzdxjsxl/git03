@@ -1,0 +1,304 @@
+{
+  "players": [
+    {
+      "id": "p1",
+      "name": "ShadowStrike",
+      "teamId": "t1",
+      "teamName": "雷霆战队",
+      "teamColor": "#00F5D4",
+      "position": "top",
+      "positionName": "上单",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=ShadowStrike"
+    },
+    {
+      "id": "p2",
+      "name": "BlazeKing",
+      "teamId": "t1",
+      "teamName": "雷霆战队",
+      "teamColor": "#00F5D4",
+      "position": "jungle",
+      "positionName": "打野",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=BlazeKing"
+    },
+    {
+      "id": "p3",
+      "name": "NightHawk",
+      "teamId": "t1",
+      "teamName": "雷霆战队",
+      "teamColor": "#00F5D4",
+      "position": "mid",
+      "positionName": "中单",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=NightHawk"
+    },
+    {
+      "id": "p4",
+      "name": "PhoenixRider",
+      "teamId": "t1",
+      "teamName": "雷霆战队",
+      "teamColor": "#00F5D4",
+      "position": "adc",
+      "positionName": "ADC",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=PhoenixRider"
+    },
+    {
+      "id": "p5",
+      "name": "StormBreaker",
+      "teamId": "t1",
+      "teamName": "雷霆战队",
+      "teamColor": "#00F5D4",
+      "position": "support",
+      "positionName": "辅助",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=StormBreaker"
+    },
+    {
+      "id": "p6",
+      "name": "IceQueen",
+      "teamId": "t2",
+      "teamName": "烈焰军团",
+      "teamColor": "#FF6B6B",
+      "position": "top",
+      "positionName": "上单",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=IceQueen"
+    },
+    {
+      "id": "p7",
+      "name": "ThunderGod",
+      "teamId": "t2",
+      "teamName": "烈焰军团",
+      "teamColor": "#FF6B6B",
+      "position": "jungle",
+      "positionName": "打野",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=ThunderGod"
+    },
+    {
+      "id": "p8",
+      "name": "ViperX",
+      "teamId": "t2",
+      "teamName": "烈焰军团",
+      "teamColor": "#FF6B6B",
+      "position": "mid",
+      "positionName": "中单",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=ViperX"
+    },
+    {
+      "id": "p9",
+      "name": "DragonSlayer",
+      "teamId": "t2",
+      "teamName": "烈焰军团",
+      "teamColor": "#FF6B6B",
+      "position": "adc",
+      "positionName": "ADC",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=DragonSlayer"
+    },
+    {
+      "id": "p10",
+      "name": "GhostWalker",
+      "teamId": "t2",
+      "teamName": "烈焰军团",
+      "teamColor": "#FF6B6B",
+      "position": "support",
+      "positionName": "辅助",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=GhostWalker"
+    },
+    {
+      "id": "p11",
+      "name": "Sentinel",
+      "teamId": "t3",
+      "teamName": "暗影骑士",
+      "teamColor": "#7C3AED",
+      "position": "top",
+      "positionName": "上单",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sentinel"
+    },
+    {
+      "id": "p12",
+      "name": "Raven",
+      "teamId": "t3",
+      "teamName": "暗影骑士",
+      "teamColor": "#7C3AED",
+      "position": "jungle",
+      "positionName": "打野",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Raven"
+    },
+    {
+      "id": "p13",
+      "name": "Titan",
+      "teamId": "t3",
+      "teamName": "暗影骑士",
+      "teamColor": "#7C3AED",
+      "position": "mid",
+      "positionName": "中单",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Titan"
+    },
+    {
+      "id": "p14",
+      "name": "Nebula",
+      "teamId": "t3",
+      "teamName": "暗影骑士",
+      "teamColor": "#7C3AED",
+      "position": "adc",
+      "positionName": "ADC",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Nebula"
+    },
+    {
+      "id": "p15",
+      "name": "Cosmic",
+      "teamId": "t3",
+      "teamName": "暗影骑士",
+      "teamColor": "#7C3AED",
+      "position": "support",
+      "positionName": "辅助",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Cosmic"
+    },
+    {
+      "id": "p16",
+      "name": "Inferno",
+      "teamId": "t4",
+      "teamName": "星辰之光",
+      "teamColor": "#FBBF24",
+      "position": "top",
+      "positionName": "上单",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Inferno"
+    },
+    {
+      "id": "p17",
+      "name": "Aurora",
+      "teamId": "t4",
+      "teamName": "星辰之光",
+      "teamColor": "#FBBF24",
+      "position": "jungle",
+      "positionName": "打野",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Aurora"
+    },
+    {
+      "id": "p18",
+      "name": "Zenith",
+      "teamId": "t4",
+      "teamName": "星辰之光",
+      "teamColor": "#FBBF24",
+      "position": "mid",
+      "positionName": "中单",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Zenith"
+    },
+    {
+      "id": "p19",
+      "name": "Quantum",
+      "teamId": "t4",
+      "teamName": "星辰之光",
+      "teamColor": "#FBBF24",
+      "position": "adc",
+      "positionName": "ADC",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Quantum"
+    },
+    {
+      "id": "p20",
+      "name": "Mystic",
+      "teamId": "t4",
+      "teamName": "星辰之光",
+      "teamColor": "#FBBF24",
+      "position": "support",
+      "positionName": "辅助",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Mystic"
+    },
+    {
+      "id": "p21",
+      "name": "Blizzard",
+      "teamId": "t5",
+      "teamName": "暴风之怒",
+      "teamColor": "#3B82F6",
+      "position": "top",
+      "positionName": "上单",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Blizzard"
+    },
+    {
+      "id": "p22",
+      "name": "Cyclone",
+      "teamId": "t5",
+      "teamName": "暴风之怒",
+      "teamColor": "#3B82F6",
+      "position": "jungle",
+      "positionName": "打野",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Cyclone"
+    },
+    {
+      "id": "p23",
+      "name": "Ember",
+      "teamId": "t5",
+      "teamName": "暴风之怒",
+      "teamColor": "#3B82F6",
+      "position": "mid",
+      "positionName": "中单",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Ember"
+    },
+    {
+      "id": "p24",
+      "name": "FrostByte",
+      "teamId": "t5",
+      "teamName": "暴风之怒",
+      "teamColor": "#3B82F6",
+      "position": "adc",
+      "positionName": "ADC",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=FrostByte"
+    },
+    {
+      "id": "p25",
+      "name": "Tsunami",
+      "teamId": "t5",
+      "teamName": "暴风之怒",
+      "teamColor": "#3B82F6",
+      "position": "support",
+      "positionName": "辅助",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Tsunami"
+    },
+    {
+      "id": "p26",
+      "name": "ShadowStrike",
+      "teamId": "t6",
+      "teamName": "冰霜守卫",
+      "teamColor": "#06B6D4",
+      "position": "top",
+      "positionName": "上单",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=ShadowStrike"
+    },
+    {
+      "id": "p27",
+      "name": "BlazeKing",
+      "teamId": "t6",
+      "teamName": "冰霜守卫",
+      "teamColor": "#06B6D4",
+      "position": "jungle",
+      "positionName": "打野",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=BlazeKing"
+    },
+    {
+      "id": "p28",
+      "name": "NightHawk",
+      "teamId": "t6",
+      "teamName": "冰霜守卫",
+      "teamColor": "#06B6D4",
+      "position": "mid",
+      "positionName": "中单",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=NightHawk"
+    },
+    {
+      "id": "p29",
+      "name": "PhoenixRider",
+      "teamId": "t6",
+      "teamName": "冰霜守卫",
+      "teamColor": "#06B6D4",
+      "position": "adc",
+      "positionName": "ADC",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=PhoenixRider"
+    },
+    {
+      "id": "p30",
+      "name": "StormBreaker",
+      "teamId": "t6",
+      "teamName": "冰霜守卫",
+      "teamColor": "#06B6D4",
+      "position": "support",
+      "positionName": "辅助",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=StormBreaker"
+    }
+  ]
+}
