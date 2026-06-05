@@ -6,6 +6,7 @@ import torchvision.transforms as transforms
 import torchvision.models as models
 from io import BytesIO
 import os
+import numpy as np
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -38,8 +39,8 @@ class StyleLoss(nn.Module):
 class Normalization(nn.Module):
     def __init__(self, mean, std):
         super(Normalization, self).__init__()
-        self.mean = torch.tensor(mean).view(-1, 1, 1)
-        self.std = torch.tensor(std).view(-1, 1, 1)
+        self.mean = mean.clone().detach().view(-1, 1, 1)
+        self.std = std.clone().detach().view(-1, 1, 1)
 
     def forward(self, img):
         return (img - self.mean) / self.std
@@ -47,7 +48,7 @@ class Normalization(nn.Module):
 class StyleTransferModel:
     def __init__(self):
         self.cnn = models.vgg19(pretrained=True).features.to(device).eval()
-        self.content_layers_default = ['conv_3', 'conv_4', 'conv_5']
+        self.content_layers_default = ['conv_4']
         self.style_layers_default = ['conv_1', 'conv_2', 'conv_3', 'conv_4', 'conv_5']
         self.cnn_normalization_mean = torch.tensor([0.485, 0.456, 0.406]).to(device)
         self.cnn_normalization_std = torch.tensor([0.229, 0.224, 0.225]).to(device)
@@ -90,7 +91,6 @@ class StyleTransferModel:
                 layer = nn.ReLU(inplace=False)
             elif isinstance(layer, nn.MaxPool2d):
                 name = 'pool_{}'.format(i)
-                layer = nn.AvgPool2d(kernel_size=2, stride=2)
             elif isinstance(layer, nn.BatchNorm2d):
                 name = 'bn_{}'.format(i)
             else:
@@ -117,11 +117,17 @@ class StyleTransferModel:
         model = model[:(i + 1)]
         return model, style_losses, content_losses
 
-    def transfer_style(self, content_image_data, style_image_data, num_steps=300, style_weight=1e5, content_weight=1e0, progress_callback=None):
+    def transfer_style(self, content_image_data, style_image_data, num_steps=300, style_weight=1e6, content_weight=1e0, progress_callback=None):
         content_img = self.load_image(content_image_data)
         style_img = self.load_image(style_image_data, max_size=content_img.size(2))
         
-        style_img = nn.functional.interpolate(style_img, size=(content_img.size(2), content_img.size(3)), mode='bilinear', align_corners=False)
+        if style_img.size(2) != content_img.size(2) or style_img.size(3) != content_img.size(3):
+            style_img = nn.functional.interpolate(
+                style_img, 
+                size=(content_img.size(2), content_img.size(3)), 
+                mode='bilinear', 
+                align_corners=False
+            )
         
         input_img = content_img.clone()
         
@@ -130,11 +136,9 @@ class StyleTransferModel:
         input_img.requires_grad_(True)
         model.requires_grad_(False)
         
-        optimizer = optim.LBFGS([input_img], max_iter=20)
+        optimizer = optim.LBFGS([input_img], max_iter=20, history_size=100)
         
         run = [0]
-        best_loss = float('inf')
-        best_img = None
         
         while run[0] <= num_steps:
             def closure():
@@ -172,8 +176,13 @@ class StyleTransferModel:
         return self.tensor_to_image(input_img)
 
     def tensor_to_image(self, tensor):
-        image = tensor.cpu().clone()
+        image = tensor.cpu().clone().detach()
         image = image.squeeze(0)
-        unloader = transforms.ToPILImage()
-        image = unloader(image)
-        return image
+        
+        image = torch.clamp(image, 0.0, 1.0)
+        
+        image = image.numpy()
+        image = np.transpose(image, (1, 2, 0))
+        image = (image * 255).astype(np.uint8)
+        
+        return Image.fromarray(image)
