@@ -1,40 +1,53 @@
-import torch
-import torch.nn as nn
 import numpy as np
 import os
 from config import MODEL_CONFIG, GESTURE_MAP
 
 
-class GestureModel(nn.Module):
-    def __init__(self, input_size, num_classes):
-        super(GestureModel, self).__init__()
-        self.fc1 = nn.Linear(input_size, 256)
-        self.bn1 = nn.BatchNorm1d(256)
-        self.dropout1 = nn.Dropout(0.3)
+class SimpleNeuralNetwork:
+    def __init__(self, input_size, hidden_sizes, output_size):
+        self.input_size = input_size
+        self.hidden_sizes = hidden_sizes
+        self.output_size = output_size
         
-        self.fc2 = nn.Linear(256, 128)
-        self.bn2 = nn.BatchNorm1d(128)
-        self.dropout2 = nn.Dropout(0.3)
+        self.weights = []
+        self.biases = []
         
-        self.fc3 = nn.Linear(128, 64)
-        self.bn3 = nn.BatchNorm1d(64)
-        self.dropout3 = nn.Dropout(0.2)
+        prev_size = input_size
+        for hidden_size in hidden_sizes:
+            self.weights.append(np.random.randn(prev_size, hidden_size) * 0.01)
+            self.biases.append(np.zeros((1, hidden_size)))
+            prev_size = hidden_size
+            
+        self.weights.append(np.random.randn(prev_size, output_size) * 0.01)
+        self.biases.append(np.zeros((1, output_size)))
         
-        self.fc4 = nn.Linear(64, num_classes)
-        self.relu = nn.ReLU()
-        
+    def relu(self, x):
+        return np.maximum(0, x)
+    
+    def softmax(self, x):
+        exp_x = np.exp(x - np.max(x, axis=1, keepdims=True))
+        return exp_x / np.sum(exp_x, axis=1, keepdims=True)
+    
     def forward(self, x):
-        x = self.relu(self.bn1(self.fc1(x)))
-        x = self.dropout1(x)
+        x = x.reshape(1, -1)
         
-        x = self.relu(self.bn2(self.fc2(x)))
-        x = self.dropout2(x)
+        for i in range(len(self.weights) - 1):
+            x = self.relu(np.dot(x, self.weights[i]) + self.biases[i])
         
-        x = self.relu(self.bn3(self.fc3(x)))
-        x = self.dropout3(x)
-        
-        x = self.fc4(x)
-        return x
+        x = np.dot(x, self.weights[-1]) + self.biases[-1]
+        return self.softmax(x)
+    
+    def save_weights(self, path):
+        data = {
+            'weights': self.weights,
+            'biases': self.biases
+        }
+        np.save(path, data)
+    
+    def load_weights(self, path):
+        data = np.load(path, allow_pickle=True).item()
+        self.weights = data['weights']
+        self.biases = data['biases']
 
 
 class RuleBasedGestureClassifier:
@@ -64,20 +77,8 @@ class RuleBasedGestureClassifier:
             states.append(is_extended)
         return states
     
-    def _get_thumb_touch_state(self, landmarks):
-        thumb_tip = landmarks[4]
-        touch_states = []
-        
-        for i in range(1, 5):
-            finger_tip = landmarks[self.finger_tips[i]]
-            dist = np.linalg.norm(thumb_tip - finger_tip)
-            touch_states.append(dist < 0.15)
-            
-        return touch_states
-    
     def classify(self, landmarks):
         fingers = self._get_finger_states(landmarks)
-        thumb_touches = self._get_thumb_touch_state(landmarks)
         
         gesture_rules = self._build_gesture_rules()
         
@@ -85,7 +86,7 @@ class RuleBasedGestureClassifier:
         best_score = 0
         
         for gesture_idx, rule in gesture_rules.items():
-            score = self._match_rule(fingers, thumb_touches, rule)
+            score = self._match_rule(fingers, rule)
             if score > best_score:
                 best_score = score
                 best_gesture = gesture_idx
@@ -94,7 +95,7 @@ class RuleBasedGestureClassifier:
         
         return best_gesture, confidence
     
-    def _match_rule(self, fingers, thumb_touches, rule):
+    def _match_rule(self, fingers, rule):
         finger_match = sum(1 for i in range(5) if fingers[i] == rule['fingers'][i])
         base_score = finger_match / 5.0
         
@@ -135,67 +136,55 @@ class RuleBasedGestureClassifier:
 
 
 class GestureClassifier:
-    def __init__(self, model_path=None, use_demo=True):
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    def __init__(self, model_path=None):
         self.input_size = 126
         self.num_classes = MODEL_CONFIG['num_classes']
         self.confidence_threshold = MODEL_CONFIG['confidence_threshold']
-        self.use_demo = use_demo
-        
-        self.model = GestureModel(self.input_size, self.num_classes).to(self.device)
-        self.model.eval()
         
         self.rule_classifier = RuleBasedGestureClassifier()
         
-        model_path = model_path or MODEL_CONFIG['model_path']
-        if os.path.exists(model_path):
-            self.load_model(model_path)
-            self.use_demo = False
-        else:
-            self._init_demo_weights()
-            
-    def _init_demo_weights(self):
-        print("使用演示模式：基于规则的手势分类")
-        self.use_demo = True
+        self.nn_model = SimpleNeuralNetwork(
+            input_size=self.input_size,
+            hidden_sizes=[256, 128, 64],
+            output_size=self.num_classes
+        )
         
-    def load_model(self, model_path):
-        try:
-            checkpoint = torch.load(model_path, map_location=self.device)
-            if isinstance(checkpoint, dict) and 'model_state_dict' in checkpoint:
-                self.model.load_state_dict(checkpoint['model_state_dict'])
-            else:
-                self.model.load_state_dict(checkpoint)
-            print(f"Model loaded from {model_path}")
-            self.use_demo = False
-        except Exception as e:
-            print(f"Failed to load model: {e}, using demo mode")
-            self._init_demo_weights()
+        model_path = model_path or MODEL_CONFIG['model_path']
+        self.use_nn = False
+        if os.path.exists(model_path):
+            try:
+                self.load_nn_model(model_path)
+                self.use_nn = True
+                print(f"模型加载成功: {model_path}")
+            except Exception as e:
+                print(f"模型加载失败，使用规则分类器: {e}")
+                self.use_nn = False
+        else:
+            print("使用基于规则的演示分类器")
+            
+    def load_nn_model(self, model_path):
+        self.nn_model.load_weights(model_path)
+        self.use_nn = True
             
     def predict(self, features):
         if features is None:
             return None, 0.0
             
-        if self.use_demo:
-            landmarks = features[:63].reshape(21, 3)
-            class_idx, confidence = self.rule_classifier.classify(landmarks)
-            if confidence > self.confidence_threshold:
-                return class_idx, confidence
-            return None, confidence
-            
-        features_tensor = torch.FloatTensor(features).unsqueeze(0).to(self.device)
-        
-        with torch.no_grad():
-            outputs = self.model(features_tensor)
-            probabilities = torch.softmax(outputs, dim=1)
-            confidence, predicted = torch.max(probabilities, 1)
-            
-            confidence = confidence.item()
-            predicted_class = predicted.item()
+        if self.use_nn:
+            probabilities = self.nn_model.forward(features)
+            predicted_class = np.argmax(probabilities, axis=1)[0]
+            confidence = probabilities[0, predicted_class]
             
             if confidence < self.confidence_threshold:
                 return None, confidence
                 
             return predicted_class, confidence
+        else:
+            landmarks = features[:63].reshape(21, 3)
+            class_idx, confidence = self.rule_classifier.classify(landmarks)
+            if confidence > self.confidence_threshold:
+                return class_idx, confidence
+            return None, confidence
             
     def get_gesture_label(self, class_idx):
         return GESTURE_MAP.get(class_idx, None)
@@ -204,18 +193,23 @@ class GestureClassifier:
         if features is None:
             return None, np.zeros(self.num_classes)
             
-        features_tensor = torch.FloatTensor(features).unsqueeze(0).to(self.device)
-        
-        with torch.no_grad():
-            outputs = self.model(features_tensor)
-            probabilities = torch.softmax(outputs, dim=1)
-            confidences = probabilities.cpu().numpy()[0]
-            
-            confidence, predicted = torch.max(probabilities, 1)
-            confidence = confidence.item()
-            predicted_class = predicted.item()
+        if self.use_nn:
+            confidences = self.nn_model.forward(features)[0]
+            predicted_class = np.argmax(confidences)
+            confidence = confidences[predicted_class]
             
             if confidence < self.confidence_threshold:
                 return None, confidences
                 
             return predicted_class, confidences
+        else:
+            landmarks = features[:63].reshape(21, 3)
+            class_idx, confidence = self.rule_classifier.classify(landmarks)
+            
+            confidences = np.zeros(self.num_classes)
+            if class_idx is not None:
+                confidences[class_idx] = confidence
+            
+            if confidence > self.confidence_threshold:
+                return class_idx, confidences
+            return None, confidences

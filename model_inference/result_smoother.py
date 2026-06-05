@@ -1,6 +1,5 @@
 import numpy as np
 from collections import deque
-from scipy import stats
 from config import MODEL_CONFIG
 
 
