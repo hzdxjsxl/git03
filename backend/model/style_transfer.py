@@ -117,7 +117,7 @@ class StyleTransferModel:
         model = model[:(i + 1)]
         return model, style_losses, content_losses
 
-    def transfer_style(self, content_image_data, style_image_data, num_steps=300, style_weight=1e6, content_weight=1e0, progress_callback=None):
+    def transfer_style(self, content_image_data, style_image_data, num_steps=300, style_weight=1e8, content_weight=5e0, progress_callback=None):
         content_img = self.load_image(content_image_data)
         style_img = self.load_image(style_image_data, max_size=content_img.size(2))
         
