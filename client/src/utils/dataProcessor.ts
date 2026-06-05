@@ -1,6 +1,7 @@
 import { Player, MatchRecord, PlayerStats, NormalizedStats, RadarData, ScatterData, TrendData } from '../types';
 
 export function cleanData(matches: MatchRecord[]): MatchRecord[] {
+  if (!matches || matches.length === 0) return [];
   return matches.map(match => ({
     ...match,
     kills: Math.max(0, match.kills || 0),
@@ -20,6 +21,7 @@ export function aggregatePlayerStats(
   players: Player[],
   matches: MatchRecord[]
 ): PlayerStats[] {
+  if (!players || players.length === 0) return [];
   const cleanedMatches = cleanData(matches);
   
   return players.map(player => {
@@ -78,7 +80,7 @@ export function aggregatePlayerStats(
 export function normalizeStats(playerStats: PlayerStats[]): Map<string, NormalizedStats> {
   const result = new Map<string, NormalizedStats>();
   
-  if (playerStats.length === 0) return result;
+  if (!playerStats || playerStats.length === 0) return result;
 
   const maxKills = Math.max(...playerStats.map(p => p.avgKills));
   const maxSurvival = Math.max(...playerStats.map(p => p.avgSurvivalTime));
@@ -116,6 +118,7 @@ export function generateRadarData(
   playerStats: PlayerStats[],
   normalizedStats: Map<string, NormalizedStats>
 ): RadarData[] {
+  if (!playerStats || playerStats.length === 0) return [];
   return playerStats.map(stats => {
     const normalized = normalizedStats.get(stats.playerId);
     return {
@@ -139,16 +142,20 @@ export function generateScatterData(
   yField: keyof PlayerStats = 'avgDeaths',
   sizeField: keyof PlayerStats = 'avgDamage'
 ): ScatterData[] {
+  if (!playerStats || playerStats.length === 0) return [];
   const maxSize = Math.max(...playerStats.map(p => p[sizeField] as number));
   
-  return playerStats.map(stats => ({
-    name: stats.playerName,
-    x: stats[xField] as number,
-    y: stats[yField] as number,
-    size: normalizeValue(stats[sizeField] as number, maxSize) * 50 + 10,
-    color: stats.teamColor,
-    team: stats.teamName,
-  }));
+  return playerStats.map(stats => {
+    const sizeRatio = maxSize === 0 ? 0 : (stats[sizeField] as number) / maxSize;
+    return {
+      name: stats.playerName,
+      x: stats[xField] as number,
+      y: stats[yField] as number,
+      size: sizeRatio * 40 + 15,
+      color: stats.teamColor,
+      team: stats.teamName,
+    };
+  });
 }
 
 export function generateTrendData(
@@ -156,6 +163,7 @@ export function generateTrendData(
   matches: MatchRecord[],
   fields: (keyof MatchRecord)[] = ['kills', 'deaths', 'assists']
 ): TrendData[] {
+  if (!matches || matches.length === 0) return [];
   const playerMatches = matches
     .filter(m => m.playerId === playerId)
     .sort((a, b) => a.matchNumber - b.matchNumber);
@@ -176,6 +184,7 @@ export function filterByPosition(
   playerStats: PlayerStats[],
   position: string | null
 ): PlayerStats[] {
+  if (!playerStats) return [];
   if (!position || position === 'all') return playerStats;
   return playerStats.filter(p => p.position === position);
 }
@@ -184,6 +193,7 @@ export function filterByTeam(
   playerStats: PlayerStats[],
   teamId: string | null
 ): PlayerStats[] {
+  if (!playerStats) return [];
   if (!teamId || teamId === 'all') return playerStats;
   return playerStats.filter(p => p.teamName === teamId);
 }
@@ -193,6 +203,7 @@ export function sortPlayers(
   sortBy: keyof PlayerStats = 'kda',
   ascending: boolean = false
 ): PlayerStats[] {
+  if (!playerStats) return [];
   return [...playerStats].sort((a, b) => {
     const aVal = a[sortBy] as number;
     const bVal = b[sortBy] as number;

@@ -1,6 +1,6 @@
+import React from 'react';
 import ReactECharts from 'echarts-for-react';
 import { ScatterData } from '../types';
-import { FIELD_LABELS } from '../utils/dataProcessor';
 
 interface ScatterChartProps {
   data: ScatterData[];
@@ -11,34 +11,20 @@ interface ScatterChartProps {
 
 export default function ScatterChart({ 
   data, 
-  title = '选手数据散点图',
-  xAxisLabel = 'X轴',
-  yAxisLabel = 'Y轴'
+  title = 'Scatter Chart',
+  xAxisLabel = 'X',
+  yAxisLabel = 'Y'
 }: ScatterChartProps) {
-  const teams = [...new Set(data.map(d => d.team))];
-  
-  const series = teams.map(team => ({
-    name: team,
-    type: 'scatter',
-    data: data.filter(d => d.team === team).map(d => [d.x, d.y, d.size, d.name]),
-    symbolSize: (data: number[]) => data[2],
-    itemStyle: {
-      color: data.find(d => d.team === team)?.color || '#00F5D4',
-      shadowBlur: 10,
-      shadowColor: data.find(d => d.team === team)?.color || '#00F5D4',
-      opacity: 0.8,
-    },
-    emphasis: {
-      itemStyle: {
-        opacity: 1,
-        borderColor: '#fff',
-        borderWidth: 2,
-      },
-    },
+  const chartData = data.map(d => ({
+    value: [d.x, d.y],
+    name: d.name,
+    symbolSize: d.size,
+    itemStyle: { color: d.color },
+    team: d.team,
   }));
 
   const option = {
-    backgroundColor: 'transparent',
+    backgroundColor: '#0a1628',
     title: {
       text: title,
       left: 'center',
@@ -46,102 +32,54 @@ export default function ScatterChart({
       textStyle: {
         color: '#00F5D4',
         fontSize: 16,
-        fontFamily: 'Orbitron, sans-serif',
-        textShadow: '0 0 10px rgba(0, 245, 212, 0.5)',
       },
     },
     tooltip: {
       trigger: 'item',
-      backgroundColor: 'rgba(10, 22, 40, 0.9)',
-      borderColor: 'rgba(0, 245, 212, 0.5)',
+      backgroundColor: 'rgba(10, 22, 40, 0.95)',
+      borderColor: '#00F5D4',
       borderWidth: 1,
-      formatter: (params: any) => {
-        const item = params.data;
-        return `
-          <div style="font-family: 'Noto Sans SC', sans-serif;">
-            <div style="color: #00F5D4; font-weight: bold; margin-bottom: 5px;">${item[3]}</div>
-            <div>${xAxisLabel}: ${item[0].toFixed(2)}</div>
-            <div>${yAxisLabel}: ${item[1].toFixed(2)}</div>
-          </div>
-        `;
-      },
-    },
-    legend: {
-      data: teams,
-      right: 20,
-      top: 40,
-      orient: 'vertical',
-      textStyle: {
-        color: '#E2E8F0',
-        fontSize: 11,
-      },
     },
     grid: {
-      left: '10%',
-      right: '20%',
-      top: '15%',
-      bottom: '10%',
+      left: 70,
+      right: 50,
+      top: 60,
+      bottom: 60,
     },
     xAxis: {
-      name: xAxisLabel,
-      nameLocation: 'middle',
-      nameGap: 30,
-      nameTextStyle: {
-        color: '#00F5D4',
-        fontSize: 12,
-      },
       type: 'value',
-      axisLine: {
-        lineStyle: {
-          color: 'rgba(0, 245, 212, 0.5)',
-        },
-      },
-      axisLabel: {
-        color: '#E2E8F0',
-        fontSize: 10,
-      },
-      splitLine: {
-        lineStyle: {
-          color: 'rgba(0, 245, 212, 0.1)',
-          type: 'dashed',
-        },
-      },
+      name: xAxisLabel,
+      nameTextStyle: { color: '#00F5D4', fontSize: 12 },
+      axisLine: { lineStyle: { color: '#00F5D4' } },
+      axisLabel: { color: '#E2E8F0', fontSize: 10 },
+      splitLine: { lineStyle: { color: 'rgba(0, 245, 212, 0.1)', type: 'dashed' } },
     },
     yAxis: {
-      name: yAxisLabel,
-      nameLocation: 'middle',
-      nameGap: 40,
-      nameTextStyle: {
-        color: '#00F5D4',
-        fontSize: 12,
-      },
       type: 'value',
-      axisLine: {
-        lineStyle: {
-          color: 'rgba(0, 245, 212, 0.5)',
-        },
-      },
-      axisLabel: {
-        color: '#E2E8F0',
-        fontSize: 10,
-      },
-      splitLine: {
-        lineStyle: {
-          color: 'rgba(0, 245, 212, 0.1)',
-          type: 'dashed',
-        },
-      },
+      name: yAxisLabel,
+      nameTextStyle: { color: '#00F5D4', fontSize: 12 },
+      axisLine: { lineStyle: { color: '#00F5D4' } },
+      axisLabel: { color: '#E2E8F0', fontSize: 10 },
+      splitLine: { lineStyle: { color: 'rgba(0, 245, 212, 0.1)', type: 'dashed' } },
     },
-    series,
-    animationDuration: 1000,
-    animationEasing: 'cubicOut',
+    series: [{
+      type: 'scatter',
+      data: chartData,
+      itemStyle: {
+        shadowBlur: 10,
+        shadowColor: 'rgba(0, 245, 212, 0.5)',
+        opacity: 0.85,
+      },
+    }],
   };
 
   return (
-    <ReactECharts
-      option={option}
-      style={{ height: '100%', width: '100%', minHeight: '350px' }}
-      opts={{ renderer: 'canvas' }}
-    />
+    <div style={{ backgroundColor: '#0a1628', borderRadius: '8px' }}>
+      <ReactECharts
+        option={option}
+        style={{ height: '350px', width: '100%' }}
+        opts={{ renderer: 'canvas' }}
+      />
+    </div>
   );
 }

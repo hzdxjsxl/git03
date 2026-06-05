@@ -45,12 +45,14 @@ export default function App() {
   const [scatterX, setScatterX] = useState<keyof PlayerStats>('avgKills');
   const [scatterY, setScatterY] = useState<keyof PlayerStats>('avgDamage');
 
+  const API_BASE = 'http://localhost:3001';
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         const [playersRes, matchesRes] = await Promise.all([
-          fetch('/api/players'),
-          fetch('/api/matches'),
+          fetch(`${API_BASE}/api/players`),
+          fetch(`${API_BASE}/api/matches`),
         ]);
         const playersData = await playersRes.json();
         const matchesData = await matchesRes.json();
@@ -66,40 +68,48 @@ export default function App() {
   }, []);
 
   const teams = useMemo(() => {
+    if (!players || players.length === 0) return ['all'];
     const teamSet = new Set(players.map(p => p.teamName));
     return ['all', ...Array.from(teamSet)];
   }, [players]);
 
   const playerStats = useMemo(() => {
-    return aggregatePlayerStats(players, matches);
+    if (!players || !matches) return [];
+    return aggregatePlayerStats(players, matches) || [];
   }, [players, matches]);
 
   const filteredStats = useMemo(() => {
+    if (!playerStats || playerStats.length === 0) return [];
     let result = filterByPosition(playerStats, selectedPosition);
     result = filterByTeam(result, selectedTeam);
     result = sortPlayers(result, sortBy);
-    return result;
+    return result || [];
   }, [playerStats, selectedPosition, selectedTeam, sortBy]);
 
   const normalizedStats = useMemo(() => {
+    if (!playerStats) return new Map();
     return normalizeStats(playerStats);
   }, [playerStats]);
 
   const selectedPlayers = useMemo(() => {
+    if (!filteredStats) return [];
     return filteredStats.filter(p => selectedPlayerIds.includes(p.playerId)).slice(0, 5);
   }, [filteredStats, selectedPlayerIds]);
 
   const radarData = useMemo(() => {
+    if (!filteredStats || !normalizedStats) return [];
     const playersForRadar = selectedPlayers.length > 0 ? selectedPlayers : filteredStats.slice(0, 5);
     return generateRadarData(playersForRadar, normalizedStats);
   }, [selectedPlayers, filteredStats, normalizedStats]);
 
   const scatterData = useMemo(() => {
+    if (!filteredStats) return [];
     return generateScatterData(filteredStats, scatterX, scatterY, 'avgDamage');
   }, [filteredStats, scatterX, scatterY]);
 
   const trendData = useMemo(() => {
     if (selectedPlayers.length === 0) return null;
+    if (!matches) return null;
     return generateTrendData(selectedPlayers[0].playerId, matches, ['kills', 'assists', 'deaths']);
   }, [selectedPlayers, matches]);
 
@@ -215,7 +225,7 @@ export default function App() {
 
             <div className="glass-card p-4 animate-fade-in-up opacity-0 animate-stagger-2">
               <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
-                <h3 className="font-orbitron text-sm text-neon-cyan">散点图配置</h3>
+                <h3 className="font-orbitron text-sm text-neon-cyan">Scatter Config</h3>
                 <div className="flex items-center gap-2">
                   <select
                     value={scatterX}
@@ -238,12 +248,14 @@ export default function App() {
                   </select>
                 </div>
               </div>
-              <ScatterChart
-                data={scatterData}
-                title="选手数据分布"
-                xAxisLabel={FIELD_LABELS[scatterX] || scatterX}
-                yAxisLabel={FIELD_LABELS[scatterY] || scatterY}
-              />
+              <div className="bg-cyber-dark/50 rounded-lg overflow-hidden">
+                <ScatterChart
+                  data={scatterData}
+                  title="Player Data Distribution"
+                  xAxisLabel={FIELD_LABELS[scatterX] || scatterX}
+                  yAxisLabel={FIELD_LABELS[scatterY] || scatterY}
+                />
+              </div>
             </div>
 
             {trendData && trendData.length > 0 ? (
