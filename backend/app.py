@@ -142,7 +142,7 @@ def start_transfer():
     data = request.json
     task_id = data.get('task_id')
     style_key = data.get('style_key')
-    num_steps = data.get('num_steps', 200)
+    num_steps = data.get('num_steps', 300)
     
     content_path = os.path.join(UPLOAD_DIR, f"{task_id}_content.jpg")
     if not os.path.exists(content_path):

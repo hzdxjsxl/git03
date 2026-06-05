@@ -47,18 +47,28 @@ class Normalization(nn.Module):
 class StyleTransferModel:
     def __init__(self):
         self.cnn = models.vgg19(pretrained=True).features.to(device).eval()
-        self.content_layers_default = ['conv_4']
+        self.content_layers_default = ['conv_3', 'conv_4', 'conv_5']
         self.style_layers_default = ['conv_1', 'conv_2', 'conv_3', 'conv_4', 'conv_5']
         self.cnn_normalization_mean = torch.tensor([0.485, 0.456, 0.406]).to(device)
         self.cnn_normalization_std = torch.tensor([0.229, 0.224, 0.225]).to(device)
-        self.imsize = 512 if torch.cuda.is_available() else 128
+        self.imsize = 512 if torch.cuda.is_available() else 384
 
-    def load_image(self, image_data):
+    def load_image(self, image_data, max_size=None):
+        if max_size is None:
+            max_size = self.imsize
+            
+        image = Image.open(BytesIO(image_data)).convert('RGB')
+        
+        w, h = image.size
+        if max(w, h) > max_size:
+            scale = max_size / max(w, h)
+            new_w = int(w * scale)
+            new_h = int(h * scale)
+            image = image.resize((new_w, new_h), Image.LANCZOS)
+        
         loader = transforms.Compose([
-            transforms.Resize((self.imsize, self.imsize)),
             transforms.ToTensor()])
         
-        image = Image.open(BytesIO(image_data))
         image = loader(image).unsqueeze(0)
         return image.to(device, torch.float)
 
@@ -80,6 +90,7 @@ class StyleTransferModel:
                 layer = nn.ReLU(inplace=False)
             elif isinstance(layer, nn.MaxPool2d):
                 name = 'pool_{}'.format(i)
+                layer = nn.AvgPool2d(kernel_size=2, stride=2)
             elif isinstance(layer, nn.BatchNorm2d):
                 name = 'bn_{}'.format(i)
             else:
@@ -106,9 +117,11 @@ class StyleTransferModel:
         model = model[:(i + 1)]
         return model, style_losses, content_losses
 
-    def transfer_style(self, content_image_data, style_image_data, num_steps=300, style_weight=1000000, content_weight=1, progress_callback=None):
+    def transfer_style(self, content_image_data, style_image_data, num_steps=300, style_weight=1e5, content_weight=1e0, progress_callback=None):
         content_img = self.load_image(content_image_data)
-        style_img = self.load_image(style_image_data)
+        style_img = self.load_image(style_image_data, max_size=content_img.size(2))
+        
+        style_img = nn.functional.interpolate(style_img, size=(content_img.size(2), content_img.size(3)), mode='bilinear', align_corners=False)
         
         input_img = content_img.clone()
         
@@ -117,9 +130,12 @@ class StyleTransferModel:
         input_img.requires_grad_(True)
         model.requires_grad_(False)
         
-        optimizer = optim.LBFGS([input_img])
+        optimizer = optim.LBFGS([input_img], max_iter=20)
         
         run = [0]
+        best_loss = float('inf')
+        best_img = None
+        
         while run[0] <= num_steps:
             def closure():
                 with torch.no_grad():
@@ -142,11 +158,11 @@ class StyleTransferModel:
                 loss.backward()
 
                 run[0] += 1
-                if progress_callback:
+                if progress_callback and run[0] % 3 == 0:
                     progress = int((run[0] / num_steps) * 100)
                     progress_callback(min(progress, 100))
 
-                return style_score + content_score
+                return loss
 
             optimizer.step(closure)
 
