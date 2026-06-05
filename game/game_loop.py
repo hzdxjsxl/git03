@@ -26,15 +26,28 @@ class Game:
         self.collision_system = CollisionSystem(self.game_map)
 
         start_room = self.rooms[0]
-        self.player = Player(start_room.center_x, start_room.center_y)
+        spawn_x = start_room.center_x
+        spawn_y = start_room.center_y
+        
+        self.player = Player(spawn_x, spawn_y)
+        
+        offset = (TILE_SIZE - self.player.width) // 2
+        self.player.x += offset
+        self.player.y += offset
 
         self.entities = [self.player]
 
         for x, y in enemy_spawns:
-            self.entities.append(Enemy(x, y))
+            enemy = Enemy(x, y)
+            enemy.x += offset
+            enemy.y += offset
+            self.entities.append(enemy)
 
         for x, y in chest_spawns:
-            self.entities.append(Chest(x, y))
+            chest = Chest(x, y)
+            chest.x += offset
+            chest.y += offset
+            self.entities.append(chest)
 
         self.game_over = False
 
