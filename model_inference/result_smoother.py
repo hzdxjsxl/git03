@@ -50,14 +50,18 @@ class ResultSmoother:
 
 
 class TextAggregator:
-    def __init__(self, min_stable_frames=8, cooldown_frames=15):
+    def __init__(self, min_stable_frames=15, cooldown_frames=30, require_gesture_change=True):
         self.min_stable_frames = min_stable_frames
         self.cooldown_frames = cooldown_frames
+        self.require_gesture_change = require_gesture_change
+        
         self.current_gesture = None
         self.gesture_counter = 0
         self.cooldown_counter = 0
         self.aggregated_text = ""
-        self.last_gesture = None
+        
+        self.last_added_gesture = None
+        self.gesture_changed = False
         
     def update(self, smoothed_gesture):
         if smoothed_gesture is None:
@@ -76,10 +80,22 @@ class TextAggregator:
             self.current_gesture = smoothed_gesture
             self.gesture_counter = 1
             
+            if smoothed_gesture != self.last_added_gesture:
+                self.gesture_changed = True
+            
         if self.gesture_counter >= self.min_stable_frames:
-            if smoothed_gesture != self.last_gesture:
-                self.last_gesture = smoothed_gesture
+            should_add = True
+            
+            if self.require_gesture_change and not self.gesture_changed:
+                should_add = False
+                
+            if smoothed_gesture == self.last_added_gesture and self.require_gesture_change:
+                should_add = False
+                
+            if should_add:
                 self.aggregated_text += smoothed_gesture
+                self.last_added_gesture = smoothed_gesture
+                self.gesture_changed = False
                 self.cooldown_counter = self.cooldown_frames
                 self.gesture_counter = 0
                 return smoothed_gesture
@@ -91,13 +107,15 @@ class TextAggregator:
         
     def clear_text(self):
         self.aggregated_text = ""
-        self.last_gesture = None
+        self.last_added_gesture = None
         self.current_gesture = None
         self.gesture_counter = 0
         self.cooldown_counter = 0
+        self.gesture_changed = False
         
     def backspace(self):
         if len(self.aggregated_text) > 0:
             self.aggregated_text = self.aggregated_text[:-1]
-            self.last_gesture = None
+            self.last_added_gesture = None
+            self.gesture_changed = True
             self.cooldown_counter = self.cooldown_frames

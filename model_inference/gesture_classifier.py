@@ -1,6 +1,50 @@
 import numpy as np
 import os
+import sys
 from config import MODEL_CONFIG, GESTURE_MAP
+
+print("检查PyTorch环境...")
+TORCH_AVAILABLE = False
+try:
+    import torch
+    import torch.nn as nn
+    TORCH_AVAILABLE = True
+    print(f"  PyTorch可用: {torch.__version__}")
+except Exception as e:
+    print(f"  PyTorch不可用，将使用NumPy后端: {e}")
+
+
+if TORCH_AVAILABLE:
+    class TorchGestureModel(nn.Module):
+        def __init__(self, input_size, num_classes):
+            super(TorchGestureModel, self).__init__()
+            self.fc1 = nn.Linear(input_size, 256)
+            self.bn1 = nn.BatchNorm1d(256)
+            self.dropout1 = nn.Dropout(0.3)
+            
+            self.fc2 = nn.Linear(256, 128)
+            self.bn2 = nn.BatchNorm1d(128)
+            self.dropout2 = nn.Dropout(0.3)
+            
+            self.fc3 = nn.Linear(128, 64)
+            self.bn3 = nn.BatchNorm1d(64)
+            self.dropout3 = nn.Dropout(0.2)
+            
+            self.fc4 = nn.Linear(64, num_classes)
+            self.relu = nn.ReLU()
+            
+        def forward(self, x):
+            x = self.relu(self.bn1(self.fc1(x)))
+            x = self.dropout1(x)
+            
+            x = self.relu(self.bn2(self.fc2(x)))
+            x = self.dropout2(x)
+            
+            x = self.relu(self.bn3(self.fc3(x)))
+            x = self.dropout3(x)
+            
+            x = self.fc4(x)
+            return x
 
 
 class SimpleNeuralNetwork:
@@ -137,41 +181,78 @@ class RuleBasedGestureClassifier:
 
 class GestureClassifier:
     def __init__(self, model_path=None):
-        self.input_size = 126
+        self.input_size = 103
         self.num_classes = MODEL_CONFIG['num_classes']
         self.confidence_threshold = MODEL_CONFIG['confidence_threshold']
         
         self.rule_classifier = RuleBasedGestureClassifier()
+        self.backend = 'rule'
         
-        self.nn_model = SimpleNeuralNetwork(
-            input_size=self.input_size,
-            hidden_sizes=[256, 128, 64],
-            output_size=self.num_classes
-        )
+        self.torch_model = None
+        self.numpy_model = None
+        self.device = None
         
-        model_path = model_path or MODEL_CONFIG['model_path']
-        self.use_nn = False
-        if os.path.exists(model_path):
+        if TORCH_AVAILABLE:
             try:
-                self.load_nn_model(model_path)
-                self.use_nn = True
-                print(f"模型加载成功: {model_path}")
+                self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+                self.torch_model = TorchGestureModel(self.input_size, self.num_classes).to(self.device)
+                self.torch_model.eval()
+                
+                model_path = model_path or MODEL_CONFIG['model_path']
+                if os.path.exists(model_path):
+                    self._load_torch_model(model_path)
+                    self.backend = 'pytorch'
+                    print(f"使用PyTorch后端推理")
+                else:
+                    print("未找到模型文件，使用规则分类器")
+                    self.backend = 'rule'
             except Exception as e:
-                print(f"模型加载失败，使用规则分类器: {e}")
-                self.use_nn = False
+                print(f"PyTorch模型初始化失败，使用NumPy后端: {e}")
+                self.numpy_model = SimpleNeuralNetwork(
+                    input_size=self.input_size,
+                    hidden_sizes=[256, 128, 64],
+                    output_size=self.num_classes
+                )
+                self.backend = 'numpy'
         else:
-            print("使用基于规则的演示分类器")
+            self.numpy_model = SimpleNeuralNetwork(
+                input_size=self.input_size,
+                hidden_sizes=[256, 128, 64],
+                output_size=self.num_classes
+            )
+            self.backend = 'numpy'
+            print("使用NumPy后端推理")
             
-    def load_nn_model(self, model_path):
-        self.nn_model.load_weights(model_path)
-        self.use_nn = True
+    def _load_torch_model(self, model_path):
+        checkpoint = torch.load(model_path, map_location=self.device)
+        if isinstance(checkpoint, dict) and 'model_state_dict' in checkpoint:
+            self.torch_model.load_state_dict(checkpoint['model_state_dict'])
+        else:
+            self.torch_model.load_state_dict(checkpoint)
+        print(f"PyTorch模型加载成功: {model_path}")
             
     def predict(self, features):
         if features is None:
             return None, 0.0
             
-        if self.use_nn:
-            probabilities = self.nn_model.forward(features)
+        if self.backend == 'pytorch' and TORCH_AVAILABLE:
+            features_tensor = torch.FloatTensor(features).unsqueeze(0).to(self.device)
+            
+            with torch.no_grad():
+                outputs = self.torch_model(features_tensor)
+                probabilities = torch.softmax(outputs, dim=1)
+                confidence, predicted = torch.max(probabilities, 1)
+                
+                confidence = confidence.item()
+                predicted_class = predicted.item()
+                
+                if confidence < self.confidence_threshold:
+                    return None, confidence
+                    
+                return predicted_class, confidence
+                
+        elif self.backend == 'numpy':
+            probabilities = self.numpy_model.forward(features)
             predicted_class = np.argmax(probabilities, axis=1)[0]
             confidence = probabilities[0, predicted_class]
             
@@ -193,8 +274,25 @@ class GestureClassifier:
         if features is None:
             return None, np.zeros(self.num_classes)
             
-        if self.use_nn:
-            confidences = self.nn_model.forward(features)[0]
+        if self.backend == 'pytorch' and TORCH_AVAILABLE:
+            features_tensor = torch.FloatTensor(features).unsqueeze(0).to(self.device)
+            
+            with torch.no_grad():
+                outputs = self.torch_model(features_tensor)
+                probabilities = torch.softmax(outputs, dim=1)
+                confidences = probabilities.cpu().numpy()[0]
+                
+                confidence, predicted = torch.max(probabilities, 1)
+                confidence = confidence.item()
+                predicted_class = predicted.item()
+                
+                if confidence < self.confidence_threshold:
+                    return None, confidences
+                    
+                return predicted_class, confidences
+                
+        elif self.backend == 'numpy':
+            confidences = self.numpy_model.forward(features)[0]
             predicted_class = np.argmax(confidences)
             confidence = confidences[predicted_class]
             
