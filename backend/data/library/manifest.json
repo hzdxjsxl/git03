@@ -1,0 +1,2502 @@
+{
+  "version": "1.0.0",
+  "generatedAt": "2026-06-21T18:50:07.399Z",
+  "templates": [
+    {
+      "id": "tpl_0001",
+      "name": "室内场景 - standard #1",
+      "category": "室内场景",
+      "sceneType": "interior",
+      "size": "standard",
+      "width": 640,
+      "height": 480,
+      "aspectRatio": "1.33",
+      "tags": [
+        "室内",
+        "房间",
+        "建筑",
+        "封闭空间",
+        "标准",
+        "v1"
+      ],
+      "popularity": 56,
+      "usageCount": 226,
+      "createdAt": "2026-05-27T17:12:52.496Z",
+      "recommendedLayout": [
+        "top-bubbles",
+        "bottom-bubbles",
+        "side-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0001.svg",
+      "url": "/static/templates/tpl_0001.svg"
+    },
+    {
+      "id": "tpl_0002",
+      "name": "室内场景 - standard #2",
+      "category": "室内场景",
+      "sceneType": "interior",
+      "size": "standard",
+      "width": 640,
+      "height": 480,
+      "aspectRatio": "1.33",
+      "tags": [
+        "室内",
+        "房间",
+        "建筑",
+        "封闭空间",
+        "标准",
+        "v2"
+      ],
+      "popularity": 30,
+      "usageCount": 270,
+      "createdAt": "2026-06-19T09:42:01.985Z",
+      "recommendedLayout": [
+        "top-bubbles",
+        "bottom-bubbles",
+        "side-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0002.svg",
+      "url": "/static/templates/tpl_0002.svg"
+    },
+    {
+      "id": "tpl_0003",
+      "name": "室内场景 - standard #3",
+      "category": "室内场景",
+      "sceneType": "interior",
+      "size": "standard",
+      "width": 640,
+      "height": 480,
+      "aspectRatio": "1.33",
+      "tags": [
+        "室内",
+        "房间",
+        "建筑",
+        "封闭空间",
+        "标准",
+        "v3"
+      ],
+      "popularity": 34,
+      "usageCount": 185,
+      "createdAt": "2026-06-20T08:43:16.878Z",
+      "recommendedLayout": [
+        "top-bubbles",
+        "bottom-bubbles",
+        "side-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0003.svg",
+      "url": "/static/templates/tpl_0003.svg"
+    },
+    {
+      "id": "tpl_0004",
+      "name": "室内场景 - wide #1",
+      "category": "室内场景",
+      "sceneType": "interior",
+      "size": "wide",
+      "width": 960,
+      "height": 400,
+      "aspectRatio": "2.40",
+      "tags": [
+        "室内",
+        "房间",
+        "建筑",
+        "封闭空间",
+        "宽屏",
+        "横向",
+        "v1"
+      ],
+      "popularity": 26,
+      "usageCount": 281,
+      "createdAt": "2026-05-27T21:34:12.879Z",
+      "recommendedLayout": [
+        "top-bubbles",
+        "bottom-bubbles",
+        "split-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0004.svg",
+      "url": "/static/templates/tpl_0004.svg"
+    },
+    {
+      "id": "tpl_0005",
+      "name": "室内场景 - wide #2",
+      "category": "室内场景",
+      "sceneType": "interior",
+      "size": "wide",
+      "width": 960,
+      "height": 400,
+      "aspectRatio": "2.40",
+      "tags": [
+        "室内",
+        "房间",
+        "建筑",
+        "封闭空间",
+        "宽屏",
+        "横向",
+        "v2"
+      ],
+      "popularity": 87,
+      "usageCount": 329,
+      "createdAt": "2026-06-19T18:45:22.161Z",
+      "recommendedLayout": [
+        "top-bubbles",
+        "bottom-bubbles",
+        "split-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0005.svg",
+      "url": "/static/templates/tpl_0005.svg"
+    },
+    {
+      "id": "tpl_0006",
+      "name": "室内场景 - wide #3",
+      "category": "室内场景",
+      "sceneType": "interior",
+      "size": "wide",
+      "width": 960,
+      "height": 400,
+      "aspectRatio": "2.40",
+      "tags": [
+        "室内",
+        "房间",
+        "建筑",
+        "封闭空间",
+        "宽屏",
+        "横向",
+        "v3"
+      ],
+      "popularity": 27,
+      "usageCount": 28,
+      "createdAt": "2026-06-03T06:47:07.203Z",
+      "recommendedLayout": [
+        "top-bubbles",
+        "bottom-bubbles",
+        "split-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0006.svg",
+      "url": "/static/templates/tpl_0006.svg"
+    },
+    {
+      "id": "tpl_0007",
+      "name": "室内场景 - tall #1",
+      "category": "室内场景",
+      "sceneType": "interior",
+      "size": "tall",
+      "width": 400,
+      "height": 640,
+      "aspectRatio": "0.63",
+      "tags": [
+        "室内",
+        "房间",
+        "建筑",
+        "封闭空间",
+        "竖屏",
+        "纵向",
+        "v1"
+      ],
+      "popularity": 73,
+      "usageCount": 153,
+      "createdAt": "2026-06-21T02:17:17.677Z",
+      "recommendedLayout": [
+        "right-bubbles",
+        "bottom-bubbles",
+        "stacked-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0007.svg",
+      "url": "/static/templates/tpl_0007.svg"
+    },
+    {
+      "id": "tpl_0008",
+      "name": "室内场景 - tall #2",
+      "category": "室内场景",
+      "sceneType": "interior",
+      "size": "tall",
+      "width": 400,
+      "height": 640,
+      "aspectRatio": "0.63",
+      "tags": [
+        "室内",
+        "房间",
+        "建筑",
+        "封闭空间",
+        "竖屏",
+        "纵向",
+        "v2"
+      ],
+      "popularity": 91,
+      "usageCount": 23,
+      "createdAt": "2026-06-03T10:12:01.132Z",
+      "recommendedLayout": [
+        "right-bubbles",
+        "bottom-bubbles",
+        "stacked-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0008.svg",
+      "url": "/static/templates/tpl_0008.svg"
+    },
+    {
+      "id": "tpl_0009",
+      "name": "室内场景 - tall #3",
+      "category": "室内场景",
+      "sceneType": "interior",
+      "size": "tall",
+      "width": 400,
+      "height": 640,
+      "aspectRatio": "0.63",
+      "tags": [
+        "室内",
+        "房间",
+        "建筑",
+        "封闭空间",
+        "竖屏",
+        "纵向",
+        "v3"
+      ],
+      "popularity": 9,
+      "usageCount": 251,
+      "createdAt": "2026-06-14T23:31:34.629Z",
+      "recommendedLayout": [
+        "right-bubbles",
+        "bottom-bubbles",
+        "stacked-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0009.svg",
+      "url": "/static/templates/tpl_0009.svg"
+    },
+    {
+      "id": "tpl_0010",
+      "name": "室内场景 - square #1",
+      "category": "室内场景",
+      "sceneType": "interior",
+      "size": "square",
+      "width": 560,
+      "height": 560,
+      "aspectRatio": "1.00",
+      "tags": [
+        "室内",
+        "房间",
+        "建筑",
+        "封闭空间",
+        "方形",
+        "v1"
+      ],
+      "popularity": 75,
+      "usageCount": 63,
+      "createdAt": "2026-06-18T12:03:10.978Z",
+      "recommendedLayout": [
+        "center-bubbles",
+        "corner-bubbles",
+        "top-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0010.svg",
+      "url": "/static/templates/tpl_0010.svg"
+    },
+    {
+      "id": "tpl_0011",
+      "name": "室内场景 - square #2",
+      "category": "室内场景",
+      "sceneType": "interior",
+      "size": "square",
+      "width": 560,
+      "height": 560,
+      "aspectRatio": "1.00",
+      "tags": [
+        "室内",
+        "房间",
+        "建筑",
+        "封闭空间",
+        "方形",
+        "v2"
+      ],
+      "popularity": 90,
+      "usageCount": 236,
+      "createdAt": "2026-06-11T08:53:06.635Z",
+      "recommendedLayout": [
+        "center-bubbles",
+        "corner-bubbles",
+        "top-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0011.svg",
+      "url": "/static/templates/tpl_0011.svg"
+    },
+    {
+      "id": "tpl_0012",
+      "name": "室内场景 - square #3",
+      "category": "室内场景",
+      "sceneType": "interior",
+      "size": "square",
+      "width": 560,
+      "height": 560,
+      "aspectRatio": "1.00",
+      "tags": [
+        "室内",
+        "房间",
+        "建筑",
+        "封闭空间",
+        "方形",
+        "v3"
+      ],
+      "popularity": 31,
+      "usageCount": 386,
+      "createdAt": "2026-06-04T13:15:20.287Z",
+      "recommendedLayout": [
+        "center-bubbles",
+        "corner-bubbles",
+        "top-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0012.svg",
+      "url": "/static/templates/tpl_0012.svg"
+    },
+    {
+      "id": "tpl_0013",
+      "name": "室外场景 - standard #1",
+      "category": "室外场景",
+      "sceneType": "exterior",
+      "size": "standard",
+      "width": 640,
+      "height": 480,
+      "aspectRatio": "1.33",
+      "tags": [
+        "室外",
+        "自然",
+        "城市",
+        "开阔",
+        "标准",
+        "v1"
+      ],
+      "popularity": 60,
+      "usageCount": 313,
+      "createdAt": "2026-05-28T12:55:04.411Z",
+      "recommendedLayout": [
+        "top-bubbles",
+        "bottom-bubbles",
+        "side-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0013.svg",
+      "url": "/static/templates/tpl_0013.svg"
+    },
+    {
+      "id": "tpl_0014",
+      "name": "室外场景 - standard #2",
+      "category": "室外场景",
+      "sceneType": "exterior",
+      "size": "standard",
+      "width": 640,
+      "height": 480,
+      "aspectRatio": "1.33",
+      "tags": [
+        "室外",
+        "自然",
+        "城市",
+        "开阔",
+        "标准",
+        "v2"
+      ],
+      "popularity": 4,
+      "usageCount": 160,
+      "createdAt": "2026-05-31T20:22:09.804Z",
+      "recommendedLayout": [
+        "top-bubbles",
+        "bottom-bubbles",
+        "side-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0014.svg",
+      "url": "/static/templates/tpl_0014.svg"
+    },
+    {
+      "id": "tpl_0015",
+      "name": "室外场景 - standard #3",
+      "category": "室外场景",
+      "sceneType": "exterior",
+      "size": "standard",
+      "width": 640,
+      "height": 480,
+      "aspectRatio": "1.33",
+      "tags": [
+        "室外",
+        "自然",
+        "城市",
+        "开阔",
+        "标准",
+        "v3"
+      ],
+      "popularity": 61,
+      "usageCount": 480,
+      "createdAt": "2026-06-06T10:46:01.307Z",
+      "recommendedLayout": [
+        "top-bubbles",
+        "bottom-bubbles",
+        "side-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0015.svg",
+      "url": "/static/templates/tpl_0015.svg"
+    },
+    {
+      "id": "tpl_0016",
+      "name": "室外场景 - wide #1",
+      "category": "室外场景",
+      "sceneType": "exterior",
+      "size": "wide",
+      "width": 960,
+      "height": 400,
+      "aspectRatio": "2.40",
+      "tags": [
+        "室外",
+        "自然",
+        "城市",
+        "开阔",
+        "宽屏",
+        "横向",
+        "v1"
+      ],
+      "popularity": 27,
+      "usageCount": 177,
+      "createdAt": "2026-06-18T08:12:32.066Z",
+      "recommendedLayout": [
+        "top-bubbles",
+        "bottom-bubbles",
+        "split-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0016.svg",
+      "url": "/static/templates/tpl_0016.svg"
+    },
+    {
+      "id": "tpl_0017",
+      "name": "室外场景 - wide #2",
+      "category": "室外场景",
+      "sceneType": "exterior",
+      "size": "wide",
+      "width": 960,
+      "height": 400,
+      "aspectRatio": "2.40",
+      "tags": [
+        "室外",
+        "自然",
+        "城市",
+        "开阔",
+        "宽屏",
+        "横向",
+        "v2"
+      ],
+      "popularity": 54,
+      "usageCount": 371,
+      "createdAt": "2026-06-10T17:10:56.014Z",
+      "recommendedLayout": [
+        "top-bubbles",
+        "bottom-bubbles",
+        "split-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0017.svg",
+      "url": "/static/templates/tpl_0017.svg"
+    },
+    {
+      "id": "tpl_0018",
+      "name": "室外场景 - wide #3",
+      "category": "室外场景",
+      "sceneType": "exterior",
+      "size": "wide",
+      "width": 960,
+      "height": 400,
+      "aspectRatio": "2.40",
+      "tags": [
+        "室外",
+        "自然",
+        "城市",
+        "开阔",
+        "宽屏",
+        "横向",
+        "v3"
+      ],
+      "popularity": 75,
+      "usageCount": 451,
+      "createdAt": "2026-05-25T05:48:48.672Z",
+      "recommendedLayout": [
+        "top-bubbles",
+        "bottom-bubbles",
+        "split-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0018.svg",
+      "url": "/static/templates/tpl_0018.svg"
+    },
+    {
+      "id": "tpl_0019",
+      "name": "室外场景 - tall #1",
+      "category": "室外场景",
+      "sceneType": "exterior",
+      "size": "tall",
+      "width": 400,
+      "height": 640,
+      "aspectRatio": "0.63",
+      "tags": [
+        "室外",
+        "自然",
+        "城市",
+        "开阔",
+        "竖屏",
+        "纵向",
+        "v1"
+      ],
+      "popularity": 55,
+      "usageCount": 361,
+      "createdAt": "2026-06-06T07:41:28.707Z",
+      "recommendedLayout": [
+        "right-bubbles",
+        "bottom-bubbles",
+        "stacked-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0019.svg",
+      "url": "/static/templates/tpl_0019.svg"
+    },
+    {
+      "id": "tpl_0020",
+      "name": "室外场景 - tall #2",
+      "category": "室外场景",
+      "sceneType": "exterior",
+      "size": "tall",
+      "width": 400,
+      "height": 640,
+      "aspectRatio": "0.63",
+      "tags": [
+        "室外",
+        "自然",
+        "城市",
+        "开阔",
+        "竖屏",
+        "纵向",
+        "v2"
+      ],
+      "popularity": 93,
+      "usageCount": 154,
+      "createdAt": "2026-06-09T17:39:24.396Z",
+      "recommendedLayout": [
+        "right-bubbles",
+        "bottom-bubbles",
+        "stacked-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0020.svg",
+      "url": "/static/templates/tpl_0020.svg"
+    },
+    {
+      "id": "tpl_0021",
+      "name": "室外场景 - tall #3",
+      "category": "室外场景",
+      "sceneType": "exterior",
+      "size": "tall",
+      "width": 400,
+      "height": 640,
+      "aspectRatio": "0.63",
+      "tags": [
+        "室外",
+        "自然",
+        "城市",
+        "开阔",
+        "竖屏",
+        "纵向",
+        "v3"
+      ],
+      "popularity": 93,
+      "usageCount": 394,
+      "createdAt": "2026-06-19T09:14:00.656Z",
+      "recommendedLayout": [
+        "right-bubbles",
+        "bottom-bubbles",
+        "stacked-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0021.svg",
+      "url": "/static/templates/tpl_0021.svg"
+    },
+    {
+      "id": "tpl_0022",
+      "name": "室外场景 - square #1",
+      "category": "室外场景",
+      "sceneType": "exterior",
+      "size": "square",
+      "width": 560,
+      "height": 560,
+      "aspectRatio": "1.00",
+      "tags": [
+        "室外",
+        "自然",
+        "城市",
+        "开阔",
+        "方形",
+        "v1"
+      ],
+      "popularity": 65,
+      "usageCount": 496,
+      "createdAt": "2026-05-28T03:39:10.546Z",
+      "recommendedLayout": [
+        "center-bubbles",
+        "corner-bubbles",
+        "top-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0022.svg",
+      "url": "/static/templates/tpl_0022.svg"
+    },
+    {
+      "id": "tpl_0023",
+      "name": "室外场景 - square #2",
+      "category": "室外场景",
+      "sceneType": "exterior",
+      "size": "square",
+      "width": 560,
+      "height": 560,
+      "aspectRatio": "1.00",
+      "tags": [
+        "室外",
+        "自然",
+        "城市",
+        "开阔",
+        "方形",
+        "v2"
+      ],
+      "popularity": 63,
+      "usageCount": 76,
+      "createdAt": "2026-06-01T07:05:20.810Z",
+      "recommendedLayout": [
+        "center-bubbles",
+        "corner-bubbles",
+        "top-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0023.svg",
+      "url": "/static/templates/tpl_0023.svg"
+    },
+    {
+      "id": "tpl_0024",
+      "name": "室外场景 - square #3",
+      "category": "室外场景",
+      "sceneType": "exterior",
+      "size": "square",
+      "width": 560,
+      "height": 560,
+      "aspectRatio": "1.00",
+      "tags": [
+        "室外",
+        "自然",
+        "城市",
+        "开阔",
+        "方形",
+        "v3"
+      ],
+      "popularity": 39,
+      "usageCount": 139,
+      "createdAt": "2026-06-21T14:00:34.282Z",
+      "recommendedLayout": [
+        "center-bubbles",
+        "corner-bubbles",
+        "top-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0024.svg",
+      "url": "/static/templates/tpl_0024.svg"
+    },
+    {
+      "id": "tpl_0025",
+      "name": "对话场景 - standard #1",
+      "category": "对话场景",
+      "sceneType": "dialogue",
+      "size": "standard",
+      "width": 640,
+      "height": 480,
+      "aspectRatio": "1.33",
+      "tags": [
+        "对话",
+        "交流",
+        "人物",
+        "情感",
+        "标准",
+        "v1"
+      ],
+      "popularity": 22,
+      "usageCount": 79,
+      "createdAt": "2026-06-19T13:12:35.303Z",
+      "recommendedLayout": [
+        "top-bubbles",
+        "bottom-bubbles",
+        "side-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0025.svg",
+      "url": "/static/templates/tpl_0025.svg"
+    },
+    {
+      "id": "tpl_0026",
+      "name": "对话场景 - standard #2",
+      "category": "对话场景",
+      "sceneType": "dialogue",
+      "size": "standard",
+      "width": 640,
+      "height": 480,
+      "aspectRatio": "1.33",
+      "tags": [
+        "对话",
+        "交流",
+        "人物",
+        "情感",
+        "标准",
+        "v2"
+      ],
+      "popularity": 65,
+      "usageCount": 59,
+      "createdAt": "2026-06-15T18:47:30.678Z",
+      "recommendedLayout": [
+        "top-bubbles",
+        "bottom-bubbles",
+        "side-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0026.svg",
+      "url": "/static/templates/tpl_0026.svg"
+    },
+    {
+      "id": "tpl_0027",
+      "name": "对话场景 - standard #3",
+      "category": "对话场景",
+      "sceneType": "dialogue",
+      "size": "standard",
+      "width": 640,
+      "height": 480,
+      "aspectRatio": "1.33",
+      "tags": [
+        "对话",
+        "交流",
+        "人物",
+        "情感",
+        "标准",
+        "v3"
+      ],
+      "popularity": 24,
+      "usageCount": 245,
+      "createdAt": "2026-06-13T18:37:27.853Z",
+      "recommendedLayout": [
+        "top-bubbles",
+        "bottom-bubbles",
+        "side-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0027.svg",
+      "url": "/static/templates/tpl_0027.svg"
+    },
+    {
+      "id": "tpl_0028",
+      "name": "对话场景 - wide #1",
+      "category": "对话场景",
+      "sceneType": "dialogue",
+      "size": "wide",
+      "width": 960,
+      "height": 400,
+      "aspectRatio": "2.40",
+      "tags": [
+        "对话",
+        "交流",
+        "人物",
+        "情感",
+        "宽屏",
+        "横向",
+        "v1"
+      ],
+      "popularity": 83,
+      "usageCount": 304,
+      "createdAt": "2026-05-23T23:55:02.640Z",
+      "recommendedLayout": [
+        "top-bubbles",
+        "bottom-bubbles",
+        "split-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0028.svg",
+      "url": "/static/templates/tpl_0028.svg"
+    },
+    {
+      "id": "tpl_0029",
+      "name": "对话场景 - wide #2",
+      "category": "对话场景",
+      "sceneType": "dialogue",
+      "size": "wide",
+      "width": 960,
+      "height": 400,
+      "aspectRatio": "2.40",
+      "tags": [
+        "对话",
+        "交流",
+        "人物",
+        "情感",
+        "宽屏",
+        "横向",
+        "v2"
+      ],
+      "popularity": 29,
+      "usageCount": 475,
+      "createdAt": "2026-06-18T01:33:07.805Z",
+      "recommendedLayout": [
+        "top-bubbles",
+        "bottom-bubbles",
+        "split-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0029.svg",
+      "url": "/static/templates/tpl_0029.svg"
+    },
+    {
+      "id": "tpl_0030",
+      "name": "对话场景 - wide #3",
+      "category": "对话场景",
+      "sceneType": "dialogue",
+      "size": "wide",
+      "width": 960,
+      "height": 400,
+      "aspectRatio": "2.40",
+      "tags": [
+        "对话",
+        "交流",
+        "人物",
+        "情感",
+        "宽屏",
+        "横向",
+        "v3"
+      ],
+      "popularity": 1,
+      "usageCount": 490,
+      "createdAt": "2026-06-07T01:33:00.714Z",
+      "recommendedLayout": [
+        "top-bubbles",
+        "bottom-bubbles",
+        "split-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0030.svg",
+      "url": "/static/templates/tpl_0030.svg"
+    },
+    {
+      "id": "tpl_0031",
+      "name": "对话场景 - tall #1",
+      "category": "对话场景",
+      "sceneType": "dialogue",
+      "size": "tall",
+      "width": 400,
+      "height": 640,
+      "aspectRatio": "0.63",
+      "tags": [
+        "对话",
+        "交流",
+        "人物",
+        "情感",
+        "竖屏",
+        "纵向",
+        "v1"
+      ],
+      "popularity": 74,
+      "usageCount": 46,
+      "createdAt": "2026-05-23T22:14:53.509Z",
+      "recommendedLayout": [
+        "right-bubbles",
+        "bottom-bubbles",
+        "stacked-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0031.svg",
+      "url": "/static/templates/tpl_0031.svg"
+    },
+    {
+      "id": "tpl_0032",
+      "name": "对话场景 - tall #2",
+      "category": "对话场景",
+      "sceneType": "dialogue",
+      "size": "tall",
+      "width": 400,
+      "height": 640,
+      "aspectRatio": "0.63",
+      "tags": [
+        "对话",
+        "交流",
+        "人物",
+        "情感",
+        "竖屏",
+        "纵向",
+        "v2"
+      ],
+      "popularity": 41,
+      "usageCount": 18,
+      "createdAt": "2026-05-29T13:13:18.866Z",
+      "recommendedLayout": [
+        "right-bubbles",
+        "bottom-bubbles",
+        "stacked-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0032.svg",
+      "url": "/static/templates/tpl_0032.svg"
+    },
+    {
+      "id": "tpl_0033",
+      "name": "对话场景 - tall #3",
+      "category": "对话场景",
+      "sceneType": "dialogue",
+      "size": "tall",
+      "width": 400,
+      "height": 640,
+      "aspectRatio": "0.63",
+      "tags": [
+        "对话",
+        "交流",
+        "人物",
+        "情感",
+        "竖屏",
+        "纵向",
+        "v3"
+      ],
+      "popularity": 61,
+      "usageCount": 78,
+      "createdAt": "2026-06-01T11:41:48.651Z",
+      "recommendedLayout": [
+        "right-bubbles",
+        "bottom-bubbles",
+        "stacked-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0033.svg",
+      "url": "/static/templates/tpl_0033.svg"
+    },
+    {
+      "id": "tpl_0034",
+      "name": "对话场景 - square #1",
+      "category": "对话场景",
+      "sceneType": "dialogue",
+      "size": "square",
+      "width": 560,
+      "height": 560,
+      "aspectRatio": "1.00",
+      "tags": [
+        "对话",
+        "交流",
+        "人物",
+        "情感",
+        "方形",
+        "v1"
+      ],
+      "popularity": 19,
+      "usageCount": 29,
+      "createdAt": "2026-06-02T10:25:14.060Z",
+      "recommendedLayout": [
+        "center-bubbles",
+        "corner-bubbles",
+        "top-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0034.svg",
+      "url": "/static/templates/tpl_0034.svg"
+    },
+    {
+      "id": "tpl_0035",
+      "name": "对话场景 - square #2",
+      "category": "对话场景",
+      "sceneType": "dialogue",
+      "size": "square",
+      "width": 560,
+      "height": 560,
+      "aspectRatio": "1.00",
+      "tags": [
+        "对话",
+        "交流",
+        "人物",
+        "情感",
+        "方形",
+        "v2"
+      ],
+      "popularity": 26,
+      "usageCount": 160,
+      "createdAt": "2026-06-13T19:56:22.419Z",
+      "recommendedLayout": [
+        "center-bubbles",
+        "corner-bubbles",
+        "top-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0035.svg",
+      "url": "/static/templates/tpl_0035.svg"
+    },
+    {
+      "id": "tpl_0036",
+      "name": "对话场景 - square #3",
+      "category": "对话场景",
+      "sceneType": "dialogue",
+      "size": "square",
+      "width": 560,
+      "height": 560,
+      "aspectRatio": "1.00",
+      "tags": [
+        "对话",
+        "交流",
+        "人物",
+        "情感",
+        "方形",
+        "v3"
+      ],
+      "popularity": 30,
+      "usageCount": 86,
+      "createdAt": "2026-06-06T10:53:17.920Z",
+      "recommendedLayout": [
+        "center-bubbles",
+        "corner-bubbles",
+        "top-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0036.svg",
+      "url": "/static/templates/tpl_0036.svg"
+    },
+    {
+      "id": "tpl_0037",
+      "name": "动作场景 - standard #1",
+      "category": "动作场景",
+      "sceneType": "action",
+      "size": "standard",
+      "width": 640,
+      "height": 480,
+      "aspectRatio": "1.33",
+      "tags": [
+        "动作",
+        "紧张",
+        "战斗",
+        "追逐",
+        "标准",
+        "v1"
+      ],
+      "popularity": 31,
+      "usageCount": 145,
+      "createdAt": "2026-06-11T06:17:40.501Z",
+      "recommendedLayout": [
+        "top-bubbles",
+        "bottom-bubbles",
+        "side-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0037.svg",
+      "url": "/static/templates/tpl_0037.svg"
+    },
+    {
+      "id": "tpl_0038",
+      "name": "动作场景 - standard #2",
+      "category": "动作场景",
+      "sceneType": "action",
+      "size": "standard",
+      "width": 640,
+      "height": 480,
+      "aspectRatio": "1.33",
+      "tags": [
+        "动作",
+        "紧张",
+        "战斗",
+        "追逐",
+        "标准",
+        "v2"
+      ],
+      "popularity": 50,
+      "usageCount": 350,
+      "createdAt": "2026-06-09T11:52:28.979Z",
+      "recommendedLayout": [
+        "top-bubbles",
+        "bottom-bubbles",
+        "side-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0038.svg",
+      "url": "/static/templates/tpl_0038.svg"
+    },
+    {
+      "id": "tpl_0039",
+      "name": "动作场景 - standard #3",
+      "category": "动作场景",
+      "sceneType": "action",
+      "size": "standard",
+      "width": 640,
+      "height": 480,
+      "aspectRatio": "1.33",
+      "tags": [
+        "动作",
+        "紧张",
+        "战斗",
+        "追逐",
+        "标准",
+        "v3"
+      ],
+      "popularity": 3,
+      "usageCount": 482,
+      "createdAt": "2026-05-30T09:09:27.269Z",
+      "recommendedLayout": [
+        "top-bubbles",
+        "bottom-bubbles",
+        "side-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0039.svg",
+      "url": "/static/templates/tpl_0039.svg"
+    },
+    {
+      "id": "tpl_0040",
+      "name": "动作场景 - wide #1",
+      "category": "动作场景",
+      "sceneType": "action",
+      "size": "wide",
+      "width": 960,
+      "height": 400,
+      "aspectRatio": "2.40",
+      "tags": [
+        "动作",
+        "紧张",
+        "战斗",
+        "追逐",
+        "宽屏",
+        "横向",
+        "v1"
+      ],
+      "popularity": 88,
+      "usageCount": 76,
+      "createdAt": "2026-06-14T02:07:31.858Z",
+      "recommendedLayout": [
+        "top-bubbles",
+        "bottom-bubbles",
+        "split-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0040.svg",
+      "url": "/static/templates/tpl_0040.svg"
+    },
+    {
+      "id": "tpl_0041",
+      "name": "动作场景 - wide #2",
+      "category": "动作场景",
+      "sceneType": "action",
+      "size": "wide",
+      "width": 960,
+      "height": 400,
+      "aspectRatio": "2.40",
+      "tags": [
+        "动作",
+        "紧张",
+        "战斗",
+        "追逐",
+        "宽屏",
+        "横向",
+        "v2"
+      ],
+      "popularity": 53,
+      "usageCount": 175,
+      "createdAt": "2026-06-20T01:55:55.488Z",
+      "recommendedLayout": [
+        "top-bubbles",
+        "bottom-bubbles",
+        "split-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0041.svg",
+      "url": "/static/templates/tpl_0041.svg"
+    },
+    {
+      "id": "tpl_0042",
+      "name": "动作场景 - wide #3",
+      "category": "动作场景",
+      "sceneType": "action",
+      "size": "wide",
+      "width": 960,
+      "height": 400,
+      "aspectRatio": "2.40",
+      "tags": [
+        "动作",
+        "紧张",
+        "战斗",
+        "追逐",
+        "宽屏",
+        "横向",
+        "v3"
+      ],
+      "popularity": 26,
+      "usageCount": 174,
+      "createdAt": "2026-05-30T02:41:04.275Z",
+      "recommendedLayout": [
+        "top-bubbles",
+        "bottom-bubbles",
+        "split-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0042.svg",
+      "url": "/static/templates/tpl_0042.svg"
+    },
+    {
+      "id": "tpl_0043",
+      "name": "动作场景 - tall #1",
+      "category": "动作场景",
+      "sceneType": "action",
+      "size": "tall",
+      "width": 400,
+      "height": 640,
+      "aspectRatio": "0.63",
+      "tags": [
+        "动作",
+        "紧张",
+        "战斗",
+        "追逐",
+        "竖屏",
+        "纵向",
+        "v1"
+      ],
+      "popularity": 40,
+      "usageCount": 452,
+      "createdAt": "2026-06-18T00:12:20.761Z",
+      "recommendedLayout": [
+        "right-bubbles",
+        "bottom-bubbles",
+        "stacked-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0043.svg",
+      "url": "/static/templates/tpl_0043.svg"
+    },
+    {
+      "id": "tpl_0044",
+      "name": "动作场景 - tall #2",
+      "category": "动作场景",
+      "sceneType": "action",
+      "size": "tall",
+      "width": 400,
+      "height": 640,
+      "aspectRatio": "0.63",
+      "tags": [
+        "动作",
+        "紧张",
+        "战斗",
+        "追逐",
+        "竖屏",
+        "纵向",
+        "v2"
+      ],
+      "popularity": 70,
+      "usageCount": 462,
+      "createdAt": "2026-06-10T02:24:31.387Z",
+      "recommendedLayout": [
+        "right-bubbles",
+        "bottom-bubbles",
+        "stacked-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0044.svg",
+      "url": "/static/templates/tpl_0044.svg"
+    },
+    {
+      "id": "tpl_0045",
+      "name": "动作场景 - tall #3",
+      "category": "动作场景",
+      "sceneType": "action",
+      "size": "tall",
+      "width": 400,
+      "height": 640,
+      "aspectRatio": "0.63",
+      "tags": [
+        "动作",
+        "紧张",
+        "战斗",
+        "追逐",
+        "竖屏",
+        "纵向",
+        "v3"
+      ],
+      "popularity": 49,
+      "usageCount": 490,
+      "createdAt": "2026-06-18T13:17:15.775Z",
+      "recommendedLayout": [
+        "right-bubbles",
+        "bottom-bubbles",
+        "stacked-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0045.svg",
+      "url": "/static/templates/tpl_0045.svg"
+    },
+    {
+      "id": "tpl_0046",
+      "name": "动作场景 - square #1",
+      "category": "动作场景",
+      "sceneType": "action",
+      "size": "square",
+      "width": 560,
+      "height": 560,
+      "aspectRatio": "1.00",
+      "tags": [
+        "动作",
+        "紧张",
+        "战斗",
+        "追逐",
+        "方形",
+        "v1"
+      ],
+      "popularity": 47,
+      "usageCount": 187,
+      "createdAt": "2026-06-17T22:00:25.452Z",
+      "recommendedLayout": [
+        "center-bubbles",
+        "corner-bubbles",
+        "top-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0046.svg",
+      "url": "/static/templates/tpl_0046.svg"
+    },
+    {
+      "id": "tpl_0047",
+      "name": "动作场景 - square #2",
+      "category": "动作场景",
+      "sceneType": "action",
+      "size": "square",
+      "width": 560,
+      "height": 560,
+      "aspectRatio": "1.00",
+      "tags": [
+        "动作",
+        "紧张",
+        "战斗",
+        "追逐",
+        "方形",
+        "v2"
+      ],
+      "popularity": 19,
+      "usageCount": 71,
+      "createdAt": "2026-05-24T16:07:48.732Z",
+      "recommendedLayout": [
+        "center-bubbles",
+        "corner-bubbles",
+        "top-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0047.svg",
+      "url": "/static/templates/tpl_0047.svg"
+    },
+    {
+      "id": "tpl_0048",
+      "name": "动作场景 - square #3",
+      "category": "动作场景",
+      "sceneType": "action",
+      "size": "square",
+      "width": 560,
+      "height": 560,
+      "aspectRatio": "1.00",
+      "tags": [
+        "动作",
+        "紧张",
+        "战斗",
+        "追逐",
+        "方形",
+        "v3"
+      ],
+      "popularity": 24,
+      "usageCount": 35,
+      "createdAt": "2026-06-05T02:14:00.104Z",
+      "recommendedLayout": [
+        "center-bubbles",
+        "corner-bubbles",
+        "top-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0048.svg",
+      "url": "/static/templates/tpl_0048.svg"
+    },
+    {
+      "id": "tpl_0049",
+      "name": "特写镜头 - standard #1",
+      "category": "特写镜头",
+      "sceneType": "closeup",
+      "size": "standard",
+      "width": 640,
+      "height": 480,
+      "aspectRatio": "1.33",
+      "tags": [
+        "特写",
+        "细节",
+        "表情",
+        "强调",
+        "标准",
+        "v1"
+      ],
+      "popularity": 98,
+      "usageCount": 98,
+      "createdAt": "2026-06-20T15:15:12.373Z",
+      "recommendedLayout": [
+        "top-bubbles",
+        "bottom-bubbles",
+        "side-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0049.svg",
+      "url": "/static/templates/tpl_0049.svg"
+    },
+    {
+      "id": "tpl_0050",
+      "name": "特写镜头 - standard #2",
+      "category": "特写镜头",
+      "sceneType": "closeup",
+      "size": "standard",
+      "width": 640,
+      "height": 480,
+      "aspectRatio": "1.33",
+      "tags": [
+        "特写",
+        "细节",
+        "表情",
+        "强调",
+        "标准",
+        "v2"
+      ],
+      "popularity": 4,
+      "usageCount": 217,
+      "createdAt": "2026-06-17T21:19:59.183Z",
+      "recommendedLayout": [
+        "top-bubbles",
+        "bottom-bubbles",
+        "side-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0050.svg",
+      "url": "/static/templates/tpl_0050.svg"
+    },
+    {
+      "id": "tpl_0051",
+      "name": "特写镜头 - standard #3",
+      "category": "特写镜头",
+      "sceneType": "closeup",
+      "size": "standard",
+      "width": 640,
+      "height": 480,
+      "aspectRatio": "1.33",
+      "tags": [
+        "特写",
+        "细节",
+        "表情",
+        "强调",
+        "标准",
+        "v3"
+      ],
+      "popularity": 53,
+      "usageCount": 389,
+      "createdAt": "2026-05-28T13:07:10.359Z",
+      "recommendedLayout": [
+        "top-bubbles",
+        "bottom-bubbles",
+        "side-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0051.svg",
+      "url": "/static/templates/tpl_0051.svg"
+    },
+    {
+      "id": "tpl_0052",
+      "name": "特写镜头 - wide #1",
+      "category": "特写镜头",
+      "sceneType": "closeup",
+      "size": "wide",
+      "width": 960,
+      "height": 400,
+      "aspectRatio": "2.40",
+      "tags": [
+        "特写",
+        "细节",
+        "表情",
+        "强调",
+        "宽屏",
+        "横向",
+        "v1"
+      ],
+      "popularity": 67,
+      "usageCount": 254,
+      "createdAt": "2026-06-01T08:50:25.008Z",
+      "recommendedLayout": [
+        "top-bubbles",
+        "bottom-bubbles",
+        "split-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0052.svg",
+      "url": "/static/templates/tpl_0052.svg"
+    },
+    {
+      "id": "tpl_0053",
+      "name": "特写镜头 - wide #2",
+      "category": "特写镜头",
+      "sceneType": "closeup",
+      "size": "wide",
+      "width": 960,
+      "height": 400,
+      "aspectRatio": "2.40",
+      "tags": [
+        "特写",
+        "细节",
+        "表情",
+        "强调",
+        "宽屏",
+        "横向",
+        "v2"
+      ],
+      "popularity": 50,
+      "usageCount": 221,
+      "createdAt": "2026-06-14T04:29:16.641Z",
+      "recommendedLayout": [
+        "top-bubbles",
+        "bottom-bubbles",
+        "split-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0053.svg",
+      "url": "/static/templates/tpl_0053.svg"
+    },
+    {
+      "id": "tpl_0054",
+      "name": "特写镜头 - wide #3",
+      "category": "特写镜头",
+      "sceneType": "closeup",
+      "size": "wide",
+      "width": 960,
+      "height": 400,
+      "aspectRatio": "2.40",
+      "tags": [
+        "特写",
+        "细节",
+        "表情",
+        "强调",
+        "宽屏",
+        "横向",
+        "v3"
+      ],
+      "popularity": 30,
+      "usageCount": 486,
+      "createdAt": "2026-06-03T09:24:53.330Z",
+      "recommendedLayout": [
+        "top-bubbles",
+        "bottom-bubbles",
+        "split-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0054.svg",
+      "url": "/static/templates/tpl_0054.svg"
+    },
+    {
+      "id": "tpl_0055",
+      "name": "特写镜头 - tall #1",
+      "category": "特写镜头",
+      "sceneType": "closeup",
+      "size": "tall",
+      "width": 400,
+      "height": 640,
+      "aspectRatio": "0.63",
+      "tags": [
+        "特写",
+        "细节",
+        "表情",
+        "强调",
+        "竖屏",
+        "纵向",
+        "v1"
+      ],
+      "popularity": 10,
+      "usageCount": 97,
+      "createdAt": "2026-06-09T20:31:58.808Z",
+      "recommendedLayout": [
+        "right-bubbles",
+        "bottom-bubbles",
+        "stacked-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0055.svg",
+      "url": "/static/templates/tpl_0055.svg"
+    },
+    {
+      "id": "tpl_0056",
+      "name": "特写镜头 - tall #2",
+      "category": "特写镜头",
+      "sceneType": "closeup",
+      "size": "tall",
+      "width": 400,
+      "height": 640,
+      "aspectRatio": "0.63",
+      "tags": [
+        "特写",
+        "细节",
+        "表情",
+        "强调",
+        "竖屏",
+        "纵向",
+        "v2"
+      ],
+      "popularity": 39,
+      "usageCount": 141,
+      "createdAt": "2026-06-17T11:03:09.608Z",
+      "recommendedLayout": [
+        "right-bubbles",
+        "bottom-bubbles",
+        "stacked-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0056.svg",
+      "url": "/static/templates/tpl_0056.svg"
+    },
+    {
+      "id": "tpl_0057",
+      "name": "特写镜头 - tall #3",
+      "category": "特写镜头",
+      "sceneType": "closeup",
+      "size": "tall",
+      "width": 400,
+      "height": 640,
+      "aspectRatio": "0.63",
+      "tags": [
+        "特写",
+        "细节",
+        "表情",
+        "强调",
+        "竖屏",
+        "纵向",
+        "v3"
+      ],
+      "popularity": 86,
+      "usageCount": 379,
+      "createdAt": "2026-05-26T12:10:48.802Z",
+      "recommendedLayout": [
+        "right-bubbles",
+        "bottom-bubbles",
+        "stacked-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0057.svg",
+      "url": "/static/templates/tpl_0057.svg"
+    },
+    {
+      "id": "tpl_0058",
+      "name": "特写镜头 - square #1",
+      "category": "特写镜头",
+      "sceneType": "closeup",
+      "size": "square",
+      "width": 560,
+      "height": 560,
+      "aspectRatio": "1.00",
+      "tags": [
+        "特写",
+        "细节",
+        "表情",
+        "强调",
+        "方形",
+        "v1"
+      ],
+      "popularity": 14,
+      "usageCount": 264,
+      "createdAt": "2026-05-26T14:46:32.826Z",
+      "recommendedLayout": [
+        "center-bubbles",
+        "corner-bubbles",
+        "top-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0058.svg",
+      "url": "/static/templates/tpl_0058.svg"
+    },
+    {
+      "id": "tpl_0059",
+      "name": "特写镜头 - square #2",
+      "category": "特写镜头",
+      "sceneType": "closeup",
+      "size": "square",
+      "width": 560,
+      "height": 560,
+      "aspectRatio": "1.00",
+      "tags": [
+        "特写",
+        "细节",
+        "表情",
+        "强调",
+        "方形",
+        "v2"
+      ],
+      "popularity": 16,
+      "usageCount": 349,
+      "createdAt": "2026-06-18T12:19:54.581Z",
+      "recommendedLayout": [
+        "center-bubbles",
+        "corner-bubbles",
+        "top-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0059.svg",
+      "url": "/static/templates/tpl_0059.svg"
+    },
+    {
+      "id": "tpl_0060",
+      "name": "特写镜头 - square #3",
+      "category": "特写镜头",
+      "sceneType": "closeup",
+      "size": "square",
+      "width": 560,
+      "height": 560,
+      "aspectRatio": "1.00",
+      "tags": [
+        "特写",
+        "细节",
+        "表情",
+        "强调",
+        "方形",
+        "v3"
+      ],
+      "popularity": 23,
+      "usageCount": 251,
+      "createdAt": "2026-06-12T20:06:42.758Z",
+      "recommendedLayout": [
+        "center-bubbles",
+        "corner-bubbles",
+        "top-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0060.svg",
+      "url": "/static/templates/tpl_0060.svg"
+    },
+    {
+      "id": "tpl_0061",
+      "name": "远景镜头 - standard #1",
+      "category": "远景镜头",
+      "sceneType": "wideshot",
+      "size": "standard",
+      "width": 640,
+      "height": 480,
+      "aspectRatio": "1.33",
+      "tags": [
+        "远景",
+        "全景",
+        "环境",
+        "氛围",
+        "标准",
+        "v1"
+      ],
+      "popularity": 60,
+      "usageCount": 426,
+      "createdAt": "2026-06-02T15:03:06.455Z",
+      "recommendedLayout": [
+        "top-bubbles",
+        "bottom-bubbles",
+        "side-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0061.svg",
+      "url": "/static/templates/tpl_0061.svg"
+    },
+    {
+      "id": "tpl_0062",
+      "name": "远景镜头 - standard #2",
+      "category": "远景镜头",
+      "sceneType": "wideshot",
+      "size": "standard",
+      "width": 640,
+      "height": 480,
+      "aspectRatio": "1.33",
+      "tags": [
+        "远景",
+        "全景",
+        "环境",
+        "氛围",
+        "标准",
+        "v2"
+      ],
+      "popularity": 22,
+      "usageCount": 494,
+      "createdAt": "2026-06-12T07:00:57.102Z",
+      "recommendedLayout": [
+        "top-bubbles",
+        "bottom-bubbles",
+        "side-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0062.svg",
+      "url": "/static/templates/tpl_0062.svg"
+    },
+    {
+      "id": "tpl_0063",
+      "name": "远景镜头 - standard #3",
+      "category": "远景镜头",
+      "sceneType": "wideshot",
+      "size": "standard",
+      "width": 640,
+      "height": 480,
+      "aspectRatio": "1.33",
+      "tags": [
+        "远景",
+        "全景",
+        "环境",
+        "氛围",
+        "标准",
+        "v3"
+      ],
+      "popularity": 96,
+      "usageCount": 216,
+      "createdAt": "2026-06-04T15:31:54.735Z",
+      "recommendedLayout": [
+        "top-bubbles",
+        "bottom-bubbles",
+        "side-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0063.svg",
+      "url": "/static/templates/tpl_0063.svg"
+    },
+    {
+      "id": "tpl_0064",
+      "name": "远景镜头 - wide #1",
+      "category": "远景镜头",
+      "sceneType": "wideshot",
+      "size": "wide",
+      "width": 960,
+      "height": 400,
+      "aspectRatio": "2.40",
+      "tags": [
+        "远景",
+        "全景",
+        "环境",
+        "氛围",
+        "宽屏",
+        "横向",
+        "v1"
+      ],
+      "popularity": 59,
+      "usageCount": 363,
+      "createdAt": "2026-05-31T09:39:53.228Z",
+      "recommendedLayout": [
+        "top-bubbles",
+        "bottom-bubbles",
+        "split-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0064.svg",
+      "url": "/static/templates/tpl_0064.svg"
+    },
+    {
+      "id": "tpl_0065",
+      "name": "远景镜头 - wide #2",
+      "category": "远景镜头",
+      "sceneType": "wideshot",
+      "size": "wide",
+      "width": 960,
+      "height": 400,
+      "aspectRatio": "2.40",
+      "tags": [
+        "远景",
+        "全景",
+        "环境",
+        "氛围",
+        "宽屏",
+        "横向",
+        "v2"
+      ],
+      "popularity": 77,
+      "usageCount": 383,
+      "createdAt": "2026-06-17T17:36:33.367Z",
+      "recommendedLayout": [
+        "top-bubbles",
+        "bottom-bubbles",
+        "split-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0065.svg",
+      "url": "/static/templates/tpl_0065.svg"
+    },
+    {
+      "id": "tpl_0066",
+      "name": "远景镜头 - wide #3",
+      "category": "远景镜头",
+      "sceneType": "wideshot",
+      "size": "wide",
+      "width": 960,
+      "height": 400,
+      "aspectRatio": "2.40",
+      "tags": [
+        "远景",
+        "全景",
+        "环境",
+        "氛围",
+        "宽屏",
+        "横向",
+        "v3"
+      ],
+      "popularity": 38,
+      "usageCount": 145,
+      "createdAt": "2026-06-20T09:31:35.487Z",
+      "recommendedLayout": [
+        "top-bubbles",
+        "bottom-bubbles",
+        "split-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0066.svg",
+      "url": "/static/templates/tpl_0066.svg"
+    },
+    {
+      "id": "tpl_0067",
+      "name": "远景镜头 - tall #1",
+      "category": "远景镜头",
+      "sceneType": "wideshot",
+      "size": "tall",
+      "width": 400,
+      "height": 640,
+      "aspectRatio": "0.63",
+      "tags": [
+        "远景",
+        "全景",
+        "环境",
+        "氛围",
+        "竖屏",
+        "纵向",
+        "v1"
+      ],
+      "popularity": 35,
+      "usageCount": 411,
+      "createdAt": "2026-06-03T03:53:04.788Z",
+      "recommendedLayout": [
+        "right-bubbles",
+        "bottom-bubbles",
+        "stacked-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0067.svg",
+      "url": "/static/templates/tpl_0067.svg"
+    },
+    {
+      "id": "tpl_0068",
+      "name": "远景镜头 - tall #2",
+      "category": "远景镜头",
+      "sceneType": "wideshot",
+      "size": "tall",
+      "width": 400,
+      "height": 640,
+      "aspectRatio": "0.63",
+      "tags": [
+        "远景",
+        "全景",
+        "环境",
+        "氛围",
+        "竖屏",
+        "纵向",
+        "v2"
+      ],
+      "popularity": 68,
+      "usageCount": 493,
+      "createdAt": "2026-05-24T03:39:46.705Z",
+      "recommendedLayout": [
+        "right-bubbles",
+        "bottom-bubbles",
+        "stacked-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0068.svg",
+      "url": "/static/templates/tpl_0068.svg"
+    },
+    {
+      "id": "tpl_0069",
+      "name": "远景镜头 - tall #3",
+      "category": "远景镜头",
+      "sceneType": "wideshot",
+      "size": "tall",
+      "width": 400,
+      "height": 640,
+      "aspectRatio": "0.63",
+      "tags": [
+        "远景",
+        "全景",
+        "环境",
+        "氛围",
+        "竖屏",
+        "纵向",
+        "v3"
+      ],
+      "popularity": 78,
+      "usageCount": 358,
+      "createdAt": "2026-06-07T18:11:58.225Z",
+      "recommendedLayout": [
+        "right-bubbles",
+        "bottom-bubbles",
+        "stacked-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0069.svg",
+      "url": "/static/templates/tpl_0069.svg"
+    },
+    {
+      "id": "tpl_0070",
+      "name": "远景镜头 - square #1",
+      "category": "远景镜头",
+      "sceneType": "wideshot",
+      "size": "square",
+      "width": 560,
+      "height": 560,
+      "aspectRatio": "1.00",
+      "tags": [
+        "远景",
+        "全景",
+        "环境",
+        "氛围",
+        "方形",
+        "v1"
+      ],
+      "popularity": 37,
+      "usageCount": 205,
+      "createdAt": "2026-05-25T13:54:30.131Z",
+      "recommendedLayout": [
+        "center-bubbles",
+        "corner-bubbles",
+        "top-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0070.svg",
+      "url": "/static/templates/tpl_0070.svg"
+    },
+    {
+      "id": "tpl_0071",
+      "name": "远景镜头 - square #2",
+      "category": "远景镜头",
+      "sceneType": "wideshot",
+      "size": "square",
+      "width": 560,
+      "height": 560,
+      "aspectRatio": "1.00",
+      "tags": [
+        "远景",
+        "全景",
+        "环境",
+        "氛围",
+        "方形",
+        "v2"
+      ],
+      "popularity": 87,
+      "usageCount": 2,
+      "createdAt": "2026-06-05T00:41:27.022Z",
+      "recommendedLayout": [
+        "center-bubbles",
+        "corner-bubbles",
+        "top-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0071.svg",
+      "url": "/static/templates/tpl_0071.svg"
+    },
+    {
+      "id": "tpl_0072",
+      "name": "远景镜头 - square #3",
+      "category": "远景镜头",
+      "sceneType": "wideshot",
+      "size": "square",
+      "width": 560,
+      "height": 560,
+      "aspectRatio": "1.00",
+      "tags": [
+        "远景",
+        "全景",
+        "环境",
+        "氛围",
+        "方形",
+        "v3"
+      ],
+      "popularity": 37,
+      "usageCount": 33,
+      "createdAt": "2026-06-05T23:41:15.621Z",
+      "recommendedLayout": [
+        "center-bubbles",
+        "corner-bubbles",
+        "top-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0072.svg",
+      "url": "/static/templates/tpl_0072.svg"
+    },
+    {
+      "id": "tpl_0073",
+      "name": "空镜转场 - standard #1",
+      "category": "空镜转场",
+      "sceneType": "establishing",
+      "size": "standard",
+      "width": 640,
+      "height": 480,
+      "aspectRatio": "1.33",
+      "tags": [
+        "空镜",
+        "转场",
+        "过渡",
+        "意境",
+        "标准",
+        "v1"
+      ],
+      "popularity": 59,
+      "usageCount": 335,
+      "createdAt": "2026-06-14T20:49:03.094Z",
+      "recommendedLayout": [
+        "top-bubbles",
+        "bottom-bubbles",
+        "side-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0073.svg",
+      "url": "/static/templates/tpl_0073.svg"
+    },
+    {
+      "id": "tpl_0074",
+      "name": "空镜转场 - standard #2",
+      "category": "空镜转场",
+      "sceneType": "establishing",
+      "size": "standard",
+      "width": 640,
+      "height": 480,
+      "aspectRatio": "1.33",
+      "tags": [
+        "空镜",
+        "转场",
+        "过渡",
+        "意境",
+        "标准",
+        "v2"
+      ],
+      "popularity": 92,
+      "usageCount": 487,
+      "createdAt": "2026-05-29T12:32:27.284Z",
+      "recommendedLayout": [
+        "top-bubbles",
+        "bottom-bubbles",
+        "side-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0074.svg",
+      "url": "/static/templates/tpl_0074.svg"
+    },
+    {
+      "id": "tpl_0075",
+      "name": "空镜转场 - standard #3",
+      "category": "空镜转场",
+      "sceneType": "establishing",
+      "size": "standard",
+      "width": 640,
+      "height": 480,
+      "aspectRatio": "1.33",
+      "tags": [
+        "空镜",
+        "转场",
+        "过渡",
+        "意境",
+        "标准",
+        "v3"
+      ],
+      "popularity": 14,
+      "usageCount": 196,
+      "createdAt": "2026-05-31T00:33:22.419Z",
+      "recommendedLayout": [
+        "top-bubbles",
+        "bottom-bubbles",
+        "side-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0075.svg",
+      "url": "/static/templates/tpl_0075.svg"
+    },
+    {
+      "id": "tpl_0076",
+      "name": "空镜转场 - wide #1",
+      "category": "空镜转场",
+      "sceneType": "establishing",
+      "size": "wide",
+      "width": 960,
+      "height": 400,
+      "aspectRatio": "2.40",
+      "tags": [
+        "空镜",
+        "转场",
+        "过渡",
+        "意境",
+        "宽屏",
+        "横向",
+        "v1"
+      ],
+      "popularity": 59,
+      "usageCount": 53,
+      "createdAt": "2026-06-14T12:33:12.355Z",
+      "recommendedLayout": [
+        "top-bubbles",
+        "bottom-bubbles",
+        "split-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0076.svg",
+      "url": "/static/templates/tpl_0076.svg"
+    },
+    {
+      "id": "tpl_0077",
+      "name": "空镜转场 - wide #2",
+      "category": "空镜转场",
+      "sceneType": "establishing",
+      "size": "wide",
+      "width": 960,
+      "height": 400,
+      "aspectRatio": "2.40",
+      "tags": [
+        "空镜",
+        "转场",
+        "过渡",
+        "意境",
+        "宽屏",
+        "横向",
+        "v2"
+      ],
+      "popularity": 24,
+      "usageCount": 116,
+      "createdAt": "2026-06-19T19:46:04.643Z",
+      "recommendedLayout": [
+        "top-bubbles",
+        "bottom-bubbles",
+        "split-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0077.svg",
+      "url": "/static/templates/tpl_0077.svg"
+    },
+    {
+      "id": "tpl_0078",
+      "name": "空镜转场 - wide #3",
+      "category": "空镜转场",
+      "sceneType": "establishing",
+      "size": "wide",
+      "width": 960,
+      "height": 400,
+      "aspectRatio": "2.40",
+      "tags": [
+        "空镜",
+        "转场",
+        "过渡",
+        "意境",
+        "宽屏",
+        "横向",
+        "v3"
+      ],
+      "popularity": 89,
+      "usageCount": 412,
+      "createdAt": "2026-06-12T11:25:23.796Z",
+      "recommendedLayout": [
+        "top-bubbles",
+        "bottom-bubbles",
+        "split-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0078.svg",
+      "url": "/static/templates/tpl_0078.svg"
+    },
+    {
+      "id": "tpl_0079",
+      "name": "空镜转场 - tall #1",
+      "category": "空镜转场",
+      "sceneType": "establishing",
+      "size": "tall",
+      "width": 400,
+      "height": 640,
+      "aspectRatio": "0.63",
+      "tags": [
+        "空镜",
+        "转场",
+        "过渡",
+        "意境",
+        "竖屏",
+        "纵向",
+        "v1"
+      ],
+      "popularity": 78,
+      "usageCount": 157,
+      "createdAt": "2026-06-19T20:50:02.163Z",
+      "recommendedLayout": [
+        "right-bubbles",
+        "bottom-bubbles",
+        "stacked-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0079.svg",
+      "url": "/static/templates/tpl_0079.svg"
+    },
+    {
+      "id": "tpl_0080",
+      "name": "空镜转场 - tall #2",
+      "category": "空镜转场",
+      "sceneType": "establishing",
+      "size": "tall",
+      "width": 400,
+      "height": 640,
+      "aspectRatio": "0.63",
+      "tags": [
+        "空镜",
+        "转场",
+        "过渡",
+        "意境",
+        "竖屏",
+        "纵向",
+        "v2"
+      ],
+      "popularity": 64,
+      "usageCount": 366,
+      "createdAt": "2026-06-02T02:42:41.699Z",
+      "recommendedLayout": [
+        "right-bubbles",
+        "bottom-bubbles",
+        "stacked-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0080.svg",
+      "url": "/static/templates/tpl_0080.svg"
+    },
+    {
+      "id": "tpl_0081",
+      "name": "空镜转场 - tall #3",
+      "category": "空镜转场",
+      "sceneType": "establishing",
+      "size": "tall",
+      "width": 400,
+      "height": 640,
+      "aspectRatio": "0.63",
+      "tags": [
+        "空镜",
+        "转场",
+        "过渡",
+        "意境",
+        "竖屏",
+        "纵向",
+        "v3"
+      ],
+      "popularity": 46,
+      "usageCount": 467,
+      "createdAt": "2026-06-11T08:26:03.203Z",
+      "recommendedLayout": [
+        "right-bubbles",
+        "bottom-bubbles",
+        "stacked-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0081.svg",
+      "url": "/static/templates/tpl_0081.svg"
+    },
+    {
+      "id": "tpl_0082",
+      "name": "空镜转场 - square #1",
+      "category": "空镜转场",
+      "sceneType": "establishing",
+      "size": "square",
+      "width": 560,
+      "height": 560,
+      "aspectRatio": "1.00",
+      "tags": [
+        "空镜",
+        "转场",
+        "过渡",
+        "意境",
+        "方形",
+        "v1"
+      ],
+      "popularity": 83,
+      "usageCount": 222,
+      "createdAt": "2026-06-03T11:27:31.925Z",
+      "recommendedLayout": [
+        "center-bubbles",
+        "corner-bubbles",
+        "top-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0082.svg",
+      "url": "/static/templates/tpl_0082.svg"
+    },
+    {
+      "id": "tpl_0083",
+      "name": "空镜转场 - square #2",
+      "category": "空镜转场",
+      "sceneType": "establishing",
+      "size": "square",
+      "width": 560,
+      "height": 560,
+      "aspectRatio": "1.00",
+      "tags": [
+        "空镜",
+        "转场",
+        "过渡",
+        "意境",
+        "方形",
+        "v2"
+      ],
+      "popularity": 60,
+      "usageCount": 133,
+      "createdAt": "2026-06-03T13:22:52.368Z",
+      "recommendedLayout": [
+        "center-bubbles",
+        "corner-bubbles",
+        "top-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0083.svg",
+      "url": "/static/templates/tpl_0083.svg"
+    },
+    {
+      "id": "tpl_0084",
+      "name": "空镜转场 - square #3",
+      "category": "空镜转场",
+      "sceneType": "establishing",
+      "size": "square",
+      "width": 560,
+      "height": 560,
+      "aspectRatio": "1.00",
+      "tags": [
+        "空镜",
+        "转场",
+        "过渡",
+        "意境",
+        "方形",
+        "v3"
+      ],
+      "popularity": 24,
+      "usageCount": 159,
+      "createdAt": "2026-06-08T08:54:08.265Z",
+      "recommendedLayout": [
+        "center-bubbles",
+        "corner-bubbles",
+        "top-bubbles"
+      ],
+      "filePath": "/static/templates/tpl_0084.svg",
+      "url": "/static/templates/tpl_0084.svg"
+    }
+  ],
+  "categories": [
+    {
+      "name": "室内场景",
+      "sceneType": "interior",
+      "count": 12,
+      "previewUrl": "/static/templates/tpl_0001.svg"
+    },
+    {
+      "name": "室外场景",
+      "sceneType": "exterior",
+      "count": 12,
+      "previewUrl": "/static/templates/tpl_0013.svg"
+    },
+    {
+      "name": "对话场景",
+      "sceneType": "dialogue",
+      "count": 12,
+      "previewUrl": "/static/templates/tpl_0025.svg"
+    },
+    {
+      "name": "动作场景",
+      "sceneType": "action",
+      "count": 12,
+      "previewUrl": "/static/templates/tpl_0037.svg"
+    },
+    {
+      "name": "特写镜头",
+      "sceneType": "closeup",
+      "count": 12,
+      "previewUrl": "/static/templates/tpl_0049.svg"
+    },
+    {
+      "name": "远景镜头",
+      "sceneType": "wideshot",
+      "count": 12,
+      "previewUrl": "/static/templates/tpl_0061.svg"
+    },
+    {
+      "name": "空镜转场",
+      "sceneType": "establishing",
+      "count": 12,
+      "previewUrl": "/static/templates/tpl_0073.svg"
+    }
+  ],
+  "sceneTypes": [
+    {
+      "type": "interior",
+      "label": "室内场景",
+      "count": 12,
+      "categories": [
+        "室内场景"
+      ]
+    },
+    {
+      "type": "exterior",
+      "label": "室外场景",
+      "count": 12,
+      "categories": [
+        "室外场景"
+      ]
+    },
+    {
+      "type": "dialogue",
+      "label": "对话场景",
+      "count": 12,
+      "categories": [
+        "对话场景"
+      ]
+    },
+    {
+      "type": "action",
+      "label": "动作场景",
+      "count": 12,
+      "categories": [
+        "动作场景"
+      ]
+    },
+    {
+      "type": "closeup",
+      "label": "特写镜头",
+      "count": 12,
+      "categories": [
+        "特写镜头"
+      ]
+    },
+    {
+      "type": "wideshot",
+      "label": "远景镜头",
+      "count": 12,
+      "categories": [
+        "远景镜头"
+      ]
+    },
+    {
+      "type": "establishing",
+      "label": "空镜转场",
+      "count": 12,
+      "categories": [
+        "空镜转场"
+      ]
+    }
+  ]
+}

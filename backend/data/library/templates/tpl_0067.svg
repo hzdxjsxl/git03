@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 640" width="400" height="640">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="hsl(150, 25%, 45%)"/>
+      <stop offset="100%" stop-color="hsl(150, 25%, 25%)"/>
+    </linearGradient>
+    <pattern id="sketch" width="20" height="20" patternUnits="userSpaceOnUse">
+      <line x1="0" y1="0" x2="20" y2="20" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect width="400" height="640" fill="url(#bg)"/>
+  <rect width="400" height="640" fill="url(#sketch)"/>
+  
+  <g opacity="0.3">
+    <line x1="0" y1="0" x2="400" y2="640" stroke="hsl(180, 70%, 60%)" stroke-width="1"/>
+    <line x1="400" y1="0" x2="0" y2="640" stroke="hsl(180, 70%, 60%)" stroke-width="1"/>
+    <rect x="20" y="20" width="360" height="600" fill="none" stroke="hsl(180, 70%, 60%)" stroke-width="2" stroke-dasharray="10,5"/>
+  </g>
+  
+  <g transform="translate(200, 320)">
+    <rect x="-80" y="-64" width="160" height="128" rx="8" fill="hsl(180, 60%, 50%)" opacity="0.5"/>
+    <text text-anchor="middle" y="8" font-family="sans-serif" font-size="20" font-weight="bold" fill="white">WIDESHOT</text>
+  </g>
+  
+  <text x="20" y="620" font-family="monospace" font-size="12" fill="rgba(255,255,255,0.6)">tpl_0067 | 远景镜头</text>
+</svg>

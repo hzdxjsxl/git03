@@ -1,0 +1,148 @@
+.speech-bubble {
+  position: absolute;
+  cursor: grab;
+  z-index: 1;
+  transition: transform 0.08s ease, filter 0.15s ease;
+  user-select: none;
+}
+
+.speech-bubble:hover {
+  z-index: 5;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.15));
+}
+
+.speech-bubble.selected {
+  z-index: 10;
+  filter: drop-shadow(0 4px 12px rgba(99, 102, 241, 0.35));
+}
+
+.speech-bubble.dragging {
+  cursor: grabbing;
+  z-index: 100;
+  filter: drop-shadow(0 8px 20px rgba(99, 102, 241, 0.4));
+}
+
+.speech-bubble.resizing {
+  cursor: nwse-resize;
+}
+
+.bubble-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1));
+}
+
+.bubble-text-layer {
+  position: absolute;
+  inset: 12% 10% 12% 10%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.bubble-text-content {
+  font-weight: 500;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-height: 100%;
+  display: -webkit-box;
+  -webkit-line-clamp: 6;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  padding: 2px;
+}
+
+.bubble-character-name {
+  font-weight: 700;
+  margin-right: 2px;
+  font-size: 0.95em;
+}
+
+.bubble-edit-input {
+  width: 100%;
+  height: 100%;
+  border: 2px dashed rgba(99, 102, 241, 0.5);
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 4px;
+  resize: none;
+  padding: 6px 8px;
+  font-family: inherit;
+  font-weight: 500;
+  line-height: 1.35;
+  text-align: center;
+  outline: none;
+  box-sizing: border-box;
+  pointer-events: auto;
+}
+
+.bubble-handle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: white;
+  border: 2px solid var(--color-primary);
+  border-radius: 3px;
+  z-index: 11;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.bubble-handle-tl {
+  top: -5px;
+  left: -5px;
+  cursor: nwse-resize;
+}
+
+.bubble-handle-tr {
+  top: -5px;
+  right: -5px;
+  cursor: nesw-resize;
+}
+
+.bubble-handle-bl {
+  bottom: -5px;
+  left: -5px;
+  cursor: nesw-resize;
+}
+
+.bubble-handle-br {
+  bottom: -5px;
+  right: -5px;
+  cursor: nwse-resize;
+}
+
+.bubble-handle-br:hover {
+  background: var(--color-primary);
+  transform: scale(1.3);
+}
+
+.bubble-size-indicator {
+  position: absolute;
+  bottom: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-primary);
+  color: white;
+  font-size: 9px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  white-space: nowrap;
+  z-index: 12;
+  pointer-events: none;
+  font-family: 'SF Mono', Consolas, monospace;
+}
+
+.bubble-type-narration .bubble-text-content {
+  font-style: italic;
+  letter-spacing: 0.5px;
+}
+
+.bubble-type-narration .bubble-svg path:first-child {
+  border-radius: 2px;
+}

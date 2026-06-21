@@ -1,0 +1,115 @@
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-bottom: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+  z-index: 100;
+  flex-shrink: 0;
+  gap: 16px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+}
+
+.logo {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.logo-icon {
+  font-size: 28px;
+}
+
+.logo-text {
+  font-size: 20px;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.logo-sub {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+.header-center {
+  flex: 1;
+  max-width: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.progress-wrap {
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.progress-label {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.error-message {
+  padding: 8px 16px;
+  background: #fef2f2;
+  color: var(--color-danger);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  border: 1px solid #fecaca;
+  max-width: 360px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.control-group > span {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+
+.control-group .select-control {
+  min-width: 90px;
+}
+
+.header-divider {
+  width: 1px;
+  height: 32px;
+  background: var(--color-border);
+  margin: 0 4px;
+}

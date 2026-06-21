@@ -1,0 +1,20 @@
+{
+  "name": "script-to-comic",
+  "version": "1.0.0",
+  "description": "剧本文本一键转分镜漫画自动生成工具",
+  "main": "index.js",
+  "scripts": {
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && nodemon server.js",
+    "dev:frontend": "cd frontend && npm run dev",
+    "start": "node backend/server.js",
+    "build": "cd frontend && npm run build"
+  },
+  "keywords": ["comic", "storyboard", "script"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
