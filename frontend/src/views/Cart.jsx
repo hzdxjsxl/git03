@@ -8,7 +8,9 @@ const Cart = () => {
   const navigate = useNavigate()
   const {
     cartItems,
+    selectedItems,
     cartTotal,
+    selectedCartTotal,
     isAllSelected,
     toggleSelectItem,
     toggleSelectAll,
@@ -31,7 +33,7 @@ const Cart = () => {
   }
 
   const handleCheckout = () => {
-    if (getSelectedCartItems().length === 0) {
+    if (getSelectedCartItems.length === 0) {
       alert('请选择要结算的商品')
       return
     }
@@ -40,7 +42,7 @@ const Cart = () => {
 
   const isSelected = (item) => {
     const key = `${item.id}_${item.spec || 'default'}`
-    return cartTotal.items.some(i => i.id === item.id && i.spec === item.spec)
+    return selectedItems.includes(key)
   }
 
   const getAppliedPromotions = (item) => {
@@ -207,17 +209,17 @@ const Cart = () => {
         )
       })}
 
-      {cartTotal.discountDetail.length > 0 && (
+      {selectedCartTotal.discountDetail.length > 0 && (
         <div className="discount-list" style={{ marginTop: '20px' }}>
           <p style={{ fontWeight: 'bold', marginBottom: '8px', color: '#52c41a' }}>
             🎉 优惠明细
           </p>
-          {cartTotal.discountDetail.map((detail, index) => (
+          {selectedCartTotal.discountDetail.map((detail, index) => (
             <div key={index} className="discount-item">
               【{detail.type}】 - {formatPrice(detail.amount)}
             </div>
           ))}
-          {cartTotal.gifts.length > 0 && cartTotal.gifts.map((gift, index) => (
+          {selectedCartTotal.gifts.length > 0 && selectedCartTotal.gifts.map((gift, index) => (
             <div key={`gift-${index}`} className="discount-item">
               【买赠活动】赠送 {gift.name}
             </div>
@@ -236,32 +238,32 @@ const Cart = () => {
           <div className="cart-summary-row">
             <span className="cart-summary-label">商品件数：</span>
             <span className="cart-summary-value">
-              {getSelectedCartItems().reduce((sum, item) => sum + item.quantity, 0)} 件
+              {getSelectedCartItems.reduce((sum, item) => sum + item.quantity, 0)} 件
             </span>
           </div>
           <div className="cart-summary-row">
             <span className="cart-summary-label">商品金额：</span>
-            <span className="cart-summary-value">{formatPrice(cartTotal.itemTotal)}</span>
+            <span className="cart-summary-value">{formatPrice(selectedCartTotal.itemTotal)}</span>
           </div>
           <div className="cart-summary-row">
             <span className="cart-summary-label">优惠金额：</span>
             <span className="cart-summary-value cart-discount">
-              - {formatPrice(cartTotal.totalDiscount)}
+              - {formatPrice(selectedCartTotal.totalDiscount)}
             </span>
           </div>
           <div className="cart-summary-row">
             <span className="cart-summary-label" style={{ fontSize: '16px' }}>应付金额：</span>
-            <span className="cart-total">{formatPrice(cartTotal.finalAmount)}</span>
+            <span className="cart-total">{formatPrice(selectedCartTotal.finalAmount)}</span>
           </div>
           <button
             className="btn btn-primary"
             onClick={handleCheckout}
-            disabled={getSelectedCartItems().length === 0}
+            disabled={getSelectedCartItems.length === 0}
             style={{
               marginTop: '16px',
               padding: '12px 48px',
               fontSize: '16px',
-              opacity: getSelectedCartItems().length === 0 ? 0.5 : 1
+              opacity: getSelectedCartItems.length === 0 ? 0.5 : 1
             }}
           >
             去结算

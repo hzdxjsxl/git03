@@ -105,6 +105,11 @@ export const CartProvider = ({ children }) => {
 
   const cartTotal = useMemo(() => {
     const activePromotions = getActivePromotions()
+    return calculateCartTotal(cartItems, activePromotions)
+  }, [cartItems, getActivePromotions])
+
+  const selectedCartTotal = useMemo(() => {
+    const activePromotions = getActivePromotions()
     return calculateCartTotal(getSelectedCartItems, activePromotions)
   }, [getSelectedCartItems, getActivePromotions])
 
@@ -121,6 +126,7 @@ export const CartProvider = ({ children }) => {
     selectedItems,
     cartCount,
     cartTotal,
+    selectedCartTotal,
     isAllSelected,
     getSelectedCartItems,
     addToCart,

@@ -7,7 +7,7 @@ import { formatPrice } from '../utils/priceCalculator.js'
 
 const Checkout = () => {
   const navigate = useNavigate()
-  const { cartTotal, getSelectedCartItems, clearCart } = useCart()
+  const { selectedCartTotal, getSelectedCartItems, clearCart } = useCart()
   const { createOrder, loading } = useOrder()
   const { getActivePromotions } = usePromotion()
 
@@ -19,7 +19,7 @@ const Checkout = () => {
   const [paymentMethod, setPaymentMethod] = useState('alipay')
 
   const activePromotions = useMemo(() => getActivePromotions(), [getActivePromotions])
-  const selectedItems = getSelectedCartItems()
+  const selectedItems = getSelectedCartItems
 
   const handleInputChange = (field, value) => {
     setAddress(prev => ({ ...prev, [field]: value }))
@@ -42,18 +42,18 @@ const Checkout = () => {
         id: item.id,
         name: item.name,
         price: item.price,
-        finalPrice: cartTotal.items.find(i => i.id === item.id && i.spec === item.spec)?.finalPrice || item.price,
+        finalPrice: selectedCartTotal.items.find(i => i.id === item.id && i.spec === item.spec)?.finalPrice || item.price,
         quantity: item.quantity,
         spec: item.spec,
         image: item.image,
         warehouse: item.warehouse
       })),
-      totalAmount: cartTotal.itemTotal,
-      discountAmount: cartTotal.totalDiscount,
-      finalAmount: cartTotal.finalAmount,
+      totalAmount: selectedCartTotal.itemTotal,
+      discountAmount: selectedCartTotal.totalDiscount,
+      finalAmount: selectedCartTotal.finalAmount,
       address,
       paymentMethod,
-      promotions: cartTotal.discountDetail.map(d => d.promotion).filter(Boolean)
+      promotions: selectedCartTotal.discountDetail.map(d => d.promotion).filter(Boolean)
     }
 
     try {
@@ -145,7 +145,7 @@ const Checkout = () => {
           <h2>🛍️ 商品清单</h2>
           <div className="checkout-items">
             {selectedItems.map(item => {
-              const itemWithPrice = cartTotal.items.find(
+              const itemWithPrice = selectedCartTotal.items.find(
                 i => i.id === item.id && i.spec === item.spec
               )
               const finalPrice = itemWithPrice?.finalPrice || item.price
@@ -185,7 +185,7 @@ const Checkout = () => {
         <div className="order-summary">
           <h2 style={{ marginBottom: '16px', fontSize: '16px' }}>💰 订单汇总</h2>
 
-          {cartTotal.discountDetail.length > 0 && (
+          {selectedCartTotal.discountDetail.length > 0 && (
             <div style={{
               background: '#f6ffed',
               padding: '12px',
@@ -195,12 +195,12 @@ const Checkout = () => {
               <p style={{ fontWeight: 'bold', color: '#52c41a', marginBottom: '8px', fontSize: '14px' }}>
                 🎉 已享优惠
               </p>
-              {cartTotal.discountDetail.map((detail, index) => (
+              {selectedCartTotal.discountDetail.map((detail, index) => (
                 <div key={index} style={{ fontSize: '12px', color: '#52c41a', marginBottom: '4px' }}>
                   【{detail.type}】 - {formatPrice(detail.amount)}
                 </div>
               ))}
-              {cartTotal.gifts && cartTotal.gifts.length > 0 && cartTotal.gifts.map((gift, index) => (
+              {selectedCartTotal.gifts && selectedCartTotal.gifts.length > 0 && selectedCartTotal.gifts.map((gift, index) => (
                 <div key={`gift-${index}`} style={{ fontSize: '12px', color: '#52c41a' }}>
                   【买赠活动】赠送礼品
                 </div>
@@ -214,7 +214,7 @@ const Checkout = () => {
           </div>
           <div className="summary-row">
             <span>商品金额</span>
-            <span>{formatPrice(cartTotal.itemTotal)}</span>
+            <span>{formatPrice(selectedCartTotal.itemTotal)}</span>
           </div>
           <div className="summary-row">
             <span>运费</span>
@@ -222,11 +222,11 @@ const Checkout = () => {
           </div>
           <div className="summary-row">
             <span>优惠金额</span>
-            <span className="summary-discount">- {formatPrice(cartTotal.totalDiscount)}</span>
+            <span className="summary-discount">- {formatPrice(selectedCartTotal.totalDiscount)}</span>
           </div>
           <div className="summary-row total">
             <span>应付金额</span>
-            <span>{formatPrice(cartTotal.finalAmount)}</span>
+            <span>{formatPrice(selectedCartTotal.finalAmount)}</span>
           </div>
 
           <button

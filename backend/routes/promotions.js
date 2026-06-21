@@ -13,17 +13,6 @@ router.get('/', (req, res) => {
   });
 });
 
-router.get('/:id', (req, res) => {
-  const promotion = promotions.find(p => p.id === req.params.id);
-  if (!promotion) {
-    return res.status(404).json({ code: 404, message: '活动不存在' });
-  }
-  res.json({
-    code: 200,
-    data: promotion
-  });
-});
-
 router.get('/product/:productId', (req, res) => {
   const now = Date.now();
   const productPromotions = promotions.filter(p => {
@@ -37,6 +26,17 @@ router.get('/product/:productId', (req, res) => {
   res.json({
     code: 200,
     data: productPromotions
+  });
+});
+
+router.get('/:id', (req, res) => {
+  const promotion = promotions.find(p => p.id === req.params.id);
+  if (!promotion) {
+    return res.status(404).json({ code: 404, message: '活动不存在' });
+  }
+  res.json({
+    code: 200,
+    data: promotion
   });
 });
 

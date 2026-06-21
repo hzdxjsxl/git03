@@ -50,6 +50,9 @@ router.get('/:id', (req, res) => {
   if (!order) {
     return res.status(404).json({ code: 404, message: '订单不存在' });
   }
+  if (order.status === 'pending' && Date.now() > order.expireTime) {
+    order.status = 'cancelled';
+  }
   res.json({
     code: 200,
     data: order

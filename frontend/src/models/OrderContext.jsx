@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react'
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { orderApi } from '../services/api.js'
 import { useCart } from './CartContext.jsx'
@@ -19,7 +19,6 @@ export const OrderProvider = ({ children }) => {
   const [loading, setLoading] = useState(false)
   const [countdown, setCountdown] = useState(null)
   const { clearCart } = useCart()
-  const timerRef = useRef(null)
 
   const createOrder = useCallback(async (orderData) => {
     setLoading(true)
@@ -84,23 +83,50 @@ export const OrderProvider = ({ children }) => {
   }, [])
 
   useEffect(() => {
+    let countdownTimer = null
+    let pollTimer = null
+
     if (currentOrder && currentOrder.status === 'pending') {
-      timerRef.current = setInterval(() => {
+      countdownTimer = setInterval(() => {
         const cd = calculateOrderCountdown(currentOrder)
         setCountdown(cd)
 
         if (cd && cd.isExpired) {
-          if (timerRef.current) {
-            clearInterval(timerRef.current)
+          if (countdownTimer) {
+            clearInterval(countdownTimer)
+          }
+          if (pollTimer) {
+            clearInterval(pollTimer)
           }
           setCurrentOrder(prev => prev ? { ...prev, status: 'cancelled' } : null)
         }
       }, 1000)
+
+      pollTimer = setInterval(async () => {
+        try {
+          const freshOrder = await orderApi.getOrder(currentOrder.id)
+          if (freshOrder && freshOrder.status !== currentOrder.status) {
+            setCurrentOrder(freshOrder)
+            setOrderHistory(prev => prev.map(o => o.id === freshOrder.id ? freshOrder : o))
+            if (freshOrder.status !== 'pending' && countdownTimer) {
+              clearInterval(countdownTimer)
+            }
+            if (freshOrder.status !== 'pending' && pollTimer) {
+              clearInterval(pollTimer)
+            }
+          }
+        } catch (e) {
+          console.error('轮询订单状态失败:', e)
+        }
+      }, 5000)
     }
 
     return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current)
+      if (countdownTimer) {
+        clearInterval(countdownTimer)
+      }
+      if (pollTimer) {
+        clearInterval(pollTimer)
       }
     }
   }, [currentOrder, calculateOrderCountdown])
