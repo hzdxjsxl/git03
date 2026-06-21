@@ -82,13 +82,11 @@ def detect_defects(image_path, confidence_threshold=None):
 
     raw_results = model.predict(
         image_path,
-        image_size=(image_info["width"], image_info["height"])
+        image_size=(image_info["width"], image_info["height"]),
+        conf_threshold=confidence_threshold
     )
 
-    filtered = [
-        r for r in raw_results
-        if r["confidence"] >= confidence_threshold
-    ]
+    filtered = raw_results
 
     defects = []
     for idx, item in enumerate(filtered):
