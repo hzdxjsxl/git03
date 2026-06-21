@@ -1,4 +1,4 @@
-import type { RiskRule } from '../types';
+import type { RiskRule, ParsedDocument, ContractTemplate } from '../types';
 
 interface ApiResponse<T> {
   success: boolean;
@@ -13,6 +13,8 @@ class RulesApiError extends Error {
     this.name = 'RulesApiError';
   }
 }
+
+const API_BASE = 'http://localhost:3001';
 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
@@ -42,13 +44,58 @@ async function handleResponse<T>(response: Response): Promise<T> {
   }
 }
 
+export async function parseDocument(file: File): Promise<ParsedDocument> {
+  if (!file) {
+    throw new RulesApiError('请选择要上传的文件');
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(`${API_BASE}/api/documents/parse`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    return handleResponse<ParsedDocument>(response);
+  } catch (e) {
+    if (e instanceof RulesApiError) {
+      throw e;
+    }
+    throw new RulesApiError(
+      e instanceof Error ? e.message : '文件解析失败'
+    );
+  }
+}
+
+export async function fetchContractTemplate(): Promise<ContractTemplate> {
+  try {
+    const response = await fetch(`${API_BASE}/api/documents/template`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    return handleResponse<ContractTemplate>(response);
+  } catch (e) {
+    if (e instanceof RulesApiError) {
+      throw e;
+    }
+    throw new RulesApiError(
+      e instanceof Error ? e.message : '获取合同模板失败'
+    );
+  }
+}
+
 export async function fetchRules(category?: string, level?: string): Promise<RiskRule[]> {
   try {
     const params = new URLSearchParams();
     if (category) params.append('category', category);
     if (level) params.append('level', level);
 
-    const url = `/api/rules${params.toString() ? `?${params.toString()}` : ''}`;
+    const url = `${API_BASE}/api/rules${params.toString() ? `?${params.toString()}` : ''}`;
 
     const response = await fetch(url, {
       method: 'GET',
@@ -70,7 +117,7 @@ export async function fetchRules(category?: string, level?: string): Promise<Ris
 
 export async function fetchCategories(): Promise<string[]> {
   try {
-    const response = await fetch('/api/rules/categories', {
+    const response = await fetch(`${API_BASE}/api/rules/categories`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -94,7 +141,7 @@ export async function fetchRuleById(id: string): Promise<RiskRule> {
   }
 
   try {
-    const response = await fetch(`/api/rules/${encodeURIComponent(id)}`, {
+    const response = await fetch(`${API_BASE}/api/rules/${encodeURIComponent(id)}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

@@ -8,6 +8,8 @@ export interface RiskRule {
   patterns: string[];
   category?: string;
   severity?: number;
+  suggestion?: string;
+  regulation?: string;
 }
 
 export interface RiskMatch {
@@ -54,6 +56,9 @@ export interface AnalysisResult {
   matches: RiskMatch[];
   highlights: HighlightRegion[];
   stats: AnalysisStats;
+  diffResults?: DiffResult[];
+  templateName?: string;
+  diffStats?: DiffStats;
 }
 
 export type DiffOperation = 'added' | 'removed' | 'unchanged';
@@ -71,4 +76,23 @@ export interface PatternMatch {
   startIndex: number;
   endIndex: number;
   isRegex: boolean;
+}
+
+export interface DiffStats {
+  addedChars: number;
+  removedChars: number;
+  unchangedChars: number;
+  similarity: number;
+}
+
+export interface ParsedDocument {
+  text: string;
+  fileName: string;
+  fileSize?: number;
+  charCount: number;
+}
+
+export interface ContractTemplate {
+  text: string;
+  name: string;
 }

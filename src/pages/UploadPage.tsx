@@ -1,8 +1,9 @@
 import { useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, FileText, ClipboardPaste, Trash2, Play, BookOpen, AlertTriangle } from 'lucide-react';
+import { Upload, FileText, ClipboardPaste, Trash2, Play, BookOpen, AlertTriangle, Loader2 } from 'lucide-react';
 import { useContractStore } from '../store/useContractStore';
 import { cn } from '../lib/utils';
+import { parseDocument } from '../services/rulesApi';
 
 const contractTypes = [
   { value: 'sale', label: '买卖合同' },
@@ -77,6 +78,7 @@ export default function UploadPage() {
   const [contractType, setContractType] = useState('sale');
   const [sensitivity, setSensitivity] = useState(1);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [parsingFile, setParsingFile] = useState(false);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -88,37 +90,53 @@ export default function UploadPage() {
     setIsDragging(false);
   }, []);
 
-  const processFile = useCallback((file: File) => {
+  const processFile = useCallback(async (file: File) => {
     const validTypes = ['.txt', '.pdf', '.doc', '.docx'];
     const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
-    
+
     if (!validTypes.includes(fileExtension)) {
       alert('请上传 .txt, .pdf, .doc, .docx 格式的文件');
       return;
     }
 
     setFileName(file.name);
+    setParsingFile(true);
 
-    if (file.type === 'text/plain' || fileExtension === '.txt') {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const content = event.target?.result as string;
-        setContractText(content);
-      };
-      reader.readAsText(file);
-    } else {
-      const reader = new FileReader();
-      reader.onload = () => {
-        setContractText(`[${file.name}]\n\n（PDF/Word 文件内容需后端解析，此处模拟已读取文件内容）\n\n请粘贴合同文本到右侧区域，或使用文本格式文件。`);
-      };
-      reader.readAsDataURL(file);
+    try {
+      if (file.type === 'text/plain' || fileExtension === '.txt') {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const content = event.target?.result as string;
+          if (content && content.trim()) {
+            setContractText(content);
+          }
+          setParsingFile(false);
+        };
+        reader.onerror = () => {
+          alert('读取文件失败，请重试');
+          setParsingFile(false);
+        };
+        reader.readAsText(file);
+      } else {
+        const result = await parseDocument(file);
+        if (result && result.text) {
+          setContractText(result.text);
+        } else {
+          alert('未能从文件中提取到文本内容');
+        }
+        setParsingFile(false);
+      }
+    } catch (error) {
+      console.error('File processing error:', error);
+      alert(error instanceof Error ? error.message : '文件解析失败，请重试');
+      setParsingFile(false);
     }
   }, [setContractText]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    
+
     const files = e.dataTransfer.files;
     if (files.length > 0) {
       processFile(files[0]);
@@ -177,7 +195,8 @@ export default function UploadPage() {
               'relative border-2 border-dashed rounded-2xl p-8 transition-all duration-300 cursor-pointer min-h-96 flex flex-col items-center justify-center',
               isDragging
                 ? 'border-blue-500 bg-blue-500/10 scale-[1.02]'
-                : 'border-slate-600 bg-slate-800/50 hover:border-slate-500 hover:bg-slate-800'
+                : 'border-slate-600 bg-slate-800/50 hover:border-slate-500 hover:bg-slate-800',
+              parsingFile ? 'opacity-60 pointer-events-none' : ''
             )}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
@@ -195,20 +214,26 @@ export default function UploadPage() {
               'w-20 h-20 rounded-full flex items-center justify-center mb-4 transition-all duration-300',
               isDragging ? 'bg-blue-500/20' : 'bg-slate-700'
             )}>
-              <Upload className={cn(
-                'w-10 h-10 transition-colors duration-300',
-                isDragging ? 'text-blue-400' : 'text-slate-400'
-              )} />
+              {parsingFile ? (
+                <Loader2 className="w-10 h-10 text-blue-400 animate-spin" />
+              ) : (
+                <Upload className={cn(
+                  'w-10 h-10 transition-colors duration-300',
+                  isDragging ? 'text-blue-400' : 'text-slate-400'
+                )} />
+              )}
             </div>
             <h3 className="text-xl font-semibold text-white mb-2">
-              {isDragging ? '释放文件以上传' : '拖拽文件到此处'}
+              {parsingFile ? '正在解析文件...' : isDragging ? '释放文件以上传' : '拖拽文件到此处'}
             </h3>
             <p className="text-slate-400 text-center mb-4">
               支持 .txt, .pdf, .doc, .docx 格式
             </p>
-            <button className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors">
-              或点击选择文件
-            </button>
+            {!parsingFile && (
+              <button className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors">
+                或点击选择文件
+              </button>
+            )}
             {fileName && (
               <div className="mt-4 flex items-center gap-2 px-4 py-2 bg-slate-700/50 rounded-lg">
                 <FileText className="w-4 h-4 text-blue-400" />
@@ -316,10 +341,10 @@ export default function UploadPage() {
           </button>
           <button
             onClick={handleAnalyze}
-            disabled={!contractText.trim()}
+            disabled={!contractText.trim() || parsingFile}
             className={cn(
               'flex items-center gap-2 px-8 py-3 rounded-xl font-semibold text-white transition-all',
-              contractText.trim()
+              contractText.trim() && !parsingFile
                 ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:scale-105'
                 : 'bg-slate-700 cursor-not-allowed opacity-50'
             )}

@@ -1,5 +1,5 @@
 import { diffChars } from 'diff';
-import type { DiffResult, DiffOperation, PatternMatch } from '../types';
+import type { DiffResult, DiffOperation, PatternMatch, DiffStats } from '../types';
 
 export function compareWithTemplate(
   contractText: string,
@@ -31,6 +31,38 @@ export function compareWithTemplate(
   }
 
   return results;
+}
+
+export function calculateDiffStats(diffResults: DiffResult[], templateText: string, contractText: string): DiffStats {
+  let addedChars = 0;
+  let removedChars = 0;
+  let unchangedChars = 0;
+
+  for (const diff of diffResults) {
+    switch (diff.operation) {
+      case 'added':
+        addedChars += diff.value.length;
+        break;
+      case 'removed':
+        removedChars += diff.value.length;
+        break;
+      case 'unchanged':
+        unchangedChars += diff.value.length;
+        break;
+    }
+  }
+
+  const maxLen = Math.max(templateText.length, contractText.length);
+  const similarity = maxLen > 0
+    ? Math.round((unchangedChars / maxLen) * 100)
+    : 0;
+
+  return {
+    addedChars,
+    removedChars,
+    unchangedChars,
+    similarity,
+  };
 }
 
 function escapeRegExp(string: string): string {
