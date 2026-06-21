@@ -1,3 +1,5 @@
+import { calcBubbleSizeFromText, calcBubbleTailDirection } from './layoutCalculator.js';
+
 const DIALOGUE_PATTERNS = [
   /^【(.+?)】[：:](.*)$/m,
   /^([A-Za-z\u4e00-\u9fa5]{1,20})[：:](.*)$/m,
@@ -466,25 +468,24 @@ function _generateLayoutHints(sceneType, dialogueCount, narrationCount) {
 function _generateDefaultBubbles(dialogues, narrations) {
   const bubbles = [];
   narrations.forEach((n, i) => {
-    const tLen = (n.content || '').length;
+    const size = calcBubbleSizeFromText(n.content, null, 'narration');
     bubbles.push({
       id: `bubble_nar_${i}_${_uid()}`,
       type: 'narration',
       text: n.content,
       defaultPosition: {
-        x: 50, y: 8 + i * 12,
-        width: Math.min(80, 40 + tLen * 0.7),
-        height: Math.max(10, 12 + Math.floor(tLen / 25) * 6)
+        x: 50,
+        y: 8 + i * 12,
+        width: size.width,
+        height: size.height
       },
       style: 'box'
     });
   });
   dialogues.forEach((d, i) => {
     const pos = BUBBLE_POSITIONS[i % BUBBLE_POSITIONS.length];
-    const tLen = ((d.character ? d.character.length + 1 : 0) + (d.content || '').length);
-    const estWidth = Math.min(60, 28 + Math.sqrt(tLen) * 7);
-    const lineCount = Math.ceil(tLen / 14);
-    const estHeight = Math.max(12, Math.min(35, 10 + lineCount * 7));
+    const size = calcBubbleSizeFromText(d.content, d.character, 'speech');
+    const tailDirection = calcBubbleTailDirection(pos.x, pos.y, size.width, size.height);
     bubbles.push({
       id: `bubble_dia_${i}_${_uid()}`,
       type: 'speech',
@@ -492,10 +493,11 @@ function _generateDefaultBubbles(dialogues, narrations) {
       text: d.content,
       emotion: d.emotion,
       defaultPosition: {
-        x: pos.x, y: pos.y,
-        width: estWidth,
-        height: estHeight,
-        tailDirection: pos.x < 50 ? 'right' : 'left'
+        x: pos.x,
+        y: pos.y,
+        width: size.width,
+        height: size.height,
+        tailDirection
       },
       style: BUBBLE_STYLES[d.emotion] || 'round'
     });

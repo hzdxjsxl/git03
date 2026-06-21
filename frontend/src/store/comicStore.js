@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { recalcBubbleDimensions } from '../utils/layoutCalculator.js';
 
 export const useComicStore = create((set, get) => ({
   rawScript: '',
@@ -128,9 +129,18 @@ export const useComicStore = create((set, get) => ({
         if (p.id !== panelId) return p;
         return {
           ...p,
-          defaultBubbles: (p.defaultBubbles || []).map((b) =>
-            b.id === bubbleId ? { ...b, ...updates } : b
-          )
+          defaultBubbles: (p.defaultBubbles || []).map((b) => {
+            if (b.id !== bubbleId) return b;
+            let merged = { ...b, ...updates };
+            const textChanged = 'text' in updates || 'character' in updates;
+            const sizeSpecified =
+              updates.defaultPosition &&
+              ('width' in updates.defaultPosition || 'height' in updates.defaultPosition);
+            if (textChanged && !sizeSpecified) {
+              merged = recalcBubbleDimensions(merged);
+            }
+            return merged;
+          })
         };
       })
     }));
@@ -188,7 +198,7 @@ export const useComicStore = create((set, get) => ({
 
   addBubble: (panelId, bubbleData) => {
     get()._pushUndo();
-    const newBubble = {
+    const baseBubble = {
       id: `bubble_${Date.now()}`,
       type: 'speech',
       text: '新气泡',
@@ -198,6 +208,7 @@ export const useComicStore = create((set, get) => ({
       defaultPosition: { x: 50, y: 50, width: 30, height: 15, tailDirection: 'left' },
       ...bubbleData
     };
+    const newBubble = recalcBubbleDimensions(baseBubble);
     set((state) => ({
       panels: state.panels.map((p) => {
         if (p.id !== panelId) return p;

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useDrag, useDrop } from 'react-dnd';
-import { estimateTextSize, getBubblePath, constrainToBounds } from '../../utils/layoutCalculator.js';
+import { estimateTextSize, getBubblePath, constrainToBounds, calcBubbleTailDirection } from '../../utils/layoutCalculator.js';
 import './SpeechBubble.css';
 
 const BUBBLE_EMOTION_COLORS = {
@@ -109,11 +109,7 @@ export default function SpeechBubble({
       newX = constrainToBounds(newX, 1, 99 - position.width);
       newY = constrainToBounds(newY, 1, 99 - position.height);
       
-      let tailDir = position.tailDirection;
-      if (newY < 15) tailDir = 'bottom';
-      else if (newY > 80) tailDir = 'top';
-      else if (newX < 30) tailDir = 'right';
-      else tailDir = 'left';
+      const tailDir = calcBubbleTailDirection(newX, newY, position.width, position.height);
       
       onChange({
         defaultPosition: {
@@ -188,20 +184,7 @@ export default function SpeechBubble({
   };
 
   const commitEdit = () => {
-    const fullText = (bubble.character ? bubble.character + '：' : '') + editText;
-    const size = estimateTextSize(fullText, 14);
-    const baseW = 10 + (size.width / 300) * 60;
-    const baseH = 8 + (size.height / 100) * 35;
-    const newW = constrainToBounds(Math.max(15, Math.min(70, baseW)), 12, 80);
-    const newH = constrainToBounds(Math.max(10, Math.min(40, baseH)), 8, 50);
-    onChange({
-      text: editText,
-      defaultPosition: {
-        ...position,
-        width: Math.round(newW * 10) / 10,
-        height: Math.round(newH * 10) / 10
-      }
-    });
+    onChange({ text: editText });
     setIsEditing(false);
   };
 

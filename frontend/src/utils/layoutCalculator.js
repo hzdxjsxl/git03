@@ -357,6 +357,63 @@ export const calcBestBubblePositions = (bubbles, panelWidth, panelHeight) => {
   return positions;
 };
 
+const _REF_PANEL_WIDTH = 300;
+const _REF_PANEL_HEIGHT = 200;
+
+export const calcBubbleSizeFromText = (text, character, type = 'speech') => {
+  const charLabel = character ? character + '：' : '';
+  const fullText = charLabel + (text || '');
+  const fontSize = type === 'narration' ? 13 : 14;
+  const size = estimateTextSize(fullText, fontSize);
+
+  const wRatio = size.width / _REF_PANEL_WIDTH;
+  const hRatio = size.height / _REF_PANEL_HEIGHT;
+
+  let widthPct = 10 + wRatio * 70;
+  let heightPct = 8 + hRatio * 45;
+
+  if (type === 'narration') {
+    widthPct = Math.min(90, 40 + wRatio * 50);
+    heightPct = Math.max(8, 10 + hRatio * 30);
+  }
+
+  widthPct = constrainToBounds(widthPct, type === 'narration' ? 40 : 15, 85);
+  heightPct = constrainToBounds(heightPct, type === 'narration' ? 8 : 10, type === 'narration' ? 30 : 45);
+
+  return {
+    width: Math.round(widthPct * 10) / 10,
+    height: Math.round(heightPct * 10) / 10
+  };
+};
+
+export const calcBubbleTailDirection = (x, y, width, height) => {
+  const centerY = y + height / 2;
+  const centerX = x + width / 2;
+  if (y < 8) return 'bottom';
+  if (y + height > 92) return 'top';
+  if (x < 12) return 'right';
+  if (x + width > 88) return 'left';
+  if (centerY < 25) return 'bottom';
+  if (centerY > 75) return 'top';
+  if (centerX < 35) return 'right';
+  return 'left';
+};
+
+export const recalcBubbleDimensions = (bubble) => {
+  const pos = bubble.defaultPosition || bubble.calculatedPosition || { x: 50, y: 50, width: 30, height: 15 };
+  const { width, height } = calcBubbleSizeFromText(bubble.text, bubble.character, bubble.type);
+  const tailDirection = calcBubbleTailDirection(pos.x, pos.y, width, height);
+  return {
+    ...bubble,
+    defaultPosition: {
+      ...pos,
+      width,
+      height,
+      tailDirection
+    }
+  };
+};
+
 export default {
   GRID_LAYOUTS,
   calcGridLayout,
@@ -364,5 +421,8 @@ export default {
   getBubblePath,
   snapToGrid,
   constrainToBounds,
-  calcBestBubblePositions
+  calcBestBubblePositions,
+  calcBubbleSizeFromText,
+  calcBubbleTailDirection,
+  recalcBubbleDimensions
 };
