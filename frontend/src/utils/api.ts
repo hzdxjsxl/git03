@@ -93,7 +93,7 @@ export const apiClient = {
   },
 
   async getCategories(): Promise<string[]> {
-    const response = await fetch(`/categories`);
+    const response = await fetch(`${API_BASE}/recommend/categories`);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }

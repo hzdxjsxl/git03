@@ -9,6 +9,9 @@ interface HeaderProps {
   isReranked: boolean;
   totalCount: number;
   loadedCount: number;
+  categories: string[];
+  currentCategory: string | undefined;
+  onCategoryChange: (category: string | undefined) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -19,6 +22,9 @@ export const Header: React.FC<HeaderProps> = ({
   isReranked,
   totalCount,
   loadedCount,
+  categories,
+  currentCategory,
+  onCategoryChange,
 }) => {
   const [showStats, setShowStats] = useState(false);
 
@@ -64,6 +70,26 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         </div>
       </div>
+
+      {categories.length > 0 && (
+        <div className="category-filter">
+          <button
+            className={`category-chip ${!currentCategory ? 'active' : ''}`}
+            onClick={() => onCategoryChange(undefined)}
+          >
+            全部
+          </button>
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              className={`category-chip ${currentCategory === cat ? 'active' : ''}`}
+              onClick={() => onCategoryChange(cat)}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      )}
 
       {showStats && (
         <div className="stats-panel">

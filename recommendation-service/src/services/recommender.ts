@@ -20,6 +20,19 @@ export class RecommenderService {
     });
   }
 
+  private buildCacheKey(
+    userId: string,
+    options?: {
+      category?: string;
+    }
+  ): string {
+    const parts: string[] = [`rec:${userId}`];
+    if (options?.category) {
+      parts.push(`cat:${options.category}`);
+    }
+    return parts.join('|');
+  }
+
   public getRecommendations(
     userId: string,
     limit: number = 20,
@@ -34,7 +47,7 @@ export class RecommenderService {
       config.recommendation.maxLimit
     );
 
-    const cacheKey = `rec:${userId}`;
+    const cacheKey = this.buildCacheKey(userId, options);
     let cached = this.sessionCache.get(cacheKey);
     const shouldRefresh = options?.refresh || !cached;
 
@@ -112,8 +125,17 @@ export class RecommenderService {
     };
   }
 
-  public invalidateSession(userId: string): void {
-    this.sessionCache.delete(`rec:${userId}`);
+  public invalidateSession(userId: string, category?: string): void {
+    const cacheKey = this.buildCacheKey(userId, { category });
+    this.sessionCache.delete(cacheKey);
+  }
+
+  public invalidateAllUserSessions(userId: string): void {
+    for (const key of this.sessionCache.keys()) {
+      if (key.startsWith(`rec:${userId}|`) || key === `rec:${userId}`) {
+        this.sessionCache.delete(key);
+      }
+    }
   }
 
   private getCategoryBoost(category: string, profile: UserProfile): number {

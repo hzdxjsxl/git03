@@ -1,9 +1,18 @@
 import { Router, Request, Response } from 'express';
 import { recommenderService } from '../services/recommender';
+import { vectorDb } from '../services/vectorDatabase';
 import { extractUserId } from '../middleware/auth';
 import { config } from '../config';
 
 const router = Router();
+
+router.get('/categories', (_req: Request, res: Response) => {
+  const categories = vectorDb.getCategories();
+  res.json({
+    status: 'success',
+    data: categories,
+  });
+});
 
 router.get('/feed', extractUserId, (req: Request, res: Response) => {
   const userId = (req as any).userId;

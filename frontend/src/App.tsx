@@ -20,6 +20,8 @@ const App: React.FC = () => {
   const [isReranked, setIsReranked] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [currentCategory, setCurrentCategory] = useState<string | undefined>(undefined);
   const initialLoadDone = useRef(false);
   const loadingRef = useRef(false);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
@@ -49,7 +51,7 @@ const App: React.FC = () => {
   }
 
   const loadRecommendations = useCallback(
-    async (offset: number, append: boolean = true) => {
+    async (offset: number, append: boolean = true, category?: string) => {
       if (loadingRef.current) return;
       loadingRef.current = true;
 
@@ -61,7 +63,7 @@ const App: React.FC = () => {
         }
         setError(null);
 
-        const response = await apiClient.getRecommendations(PAGE_SIZE, offset);
+        const response = await apiClient.getRecommendations(PAGE_SIZE, offset, category);
         const newResults = response.results;
 
         setTotalCount(response.totalCount);
@@ -100,6 +102,15 @@ const App: React.FC = () => {
     []
   );
 
+  const loadCategories = useCallback(async () => {
+    try {
+      const cats = await apiClient.getCategories();
+      setCategories(cats);
+    } catch (err) {
+      console.error('Failed to load categories:', err);
+    }
+  }, []);
+
   const loadUserProfile = useCallback(async () => {
     try {
       const profile = await apiClient.getUserProfile();
@@ -113,7 +124,7 @@ const App: React.FC = () => {
     if (allResults.length === 0) return;
 
     try {
-      const response = await apiClient.getRecommendations(PAGE_SIZE, 0, undefined, true);
+      const response = await apiClient.getRecommendations(PAGE_SIZE, 0, currentCategory, true);
       const reranked = reranker.rerank(response.results, scrollBehavior);
       setAllResults(response.results);
       setDisplayResults(reranked);
@@ -129,7 +140,7 @@ const App: React.FC = () => {
     }
 
     loadUserProfile();
-  }, [allResults, scrollBehavior, loadUserProfile]);
+  }, [allResults, scrollBehavior, loadUserProfile, currentCategory]);
 
   const handleResetProfile = useCallback(async () => {
     localStorage.removeItem('recommender_user_id');
@@ -142,22 +153,35 @@ const App: React.FC = () => {
     setCurrentOffset(0);
     setHasMore(true);
     setTotalCount(0);
+    setCurrentCategory(undefined);
     initialLoadDone.current = false;
-    await Promise.all([loadRecommendations(0, false), loadUserProfile()]);
+    await Promise.all([loadRecommendations(0, false, undefined), loadUserProfile()]);
   }, [loadRecommendations, loadUserProfile, resetDwellTimeRecords]);
+
+  const handleCategoryChange = useCallback(async (category: string | undefined) => {
+    if (category === currentCategory) return;
+    setCurrentCategory(category);
+    setIsReranked(false);
+    setAllResults([]);
+    setDisplayResults([]);
+    setCurrentOffset(0);
+    setHasMore(true);
+    setTotalCount(0);
+    await loadRecommendations(0, false, category);
+  }, [currentCategory, loadRecommendations]);
 
   const handleLoadMore = useCallback(() => {
     if (!loadingRef.current && hasMore) {
-      loadRecommendations(currentOffset, true);
+      loadRecommendations(currentOffset, true, currentCategory);
     }
-  }, [hasMore, currentOffset, loadRecommendations]);
+  }, [hasMore, currentOffset, currentCategory, loadRecommendations]);
 
   useEffect(() => {
     if (!initialLoadDone.current) {
       initialLoadDone.current = true;
-      Promise.all([loadRecommendations(0, false), loadUserProfile()]);
+      Promise.all([loadRecommendations(0, false, undefined), loadUserProfile(), loadCategories()]);
     }
-  }, [loadRecommendations, loadUserProfile]);
+  }, [loadRecommendations, loadUserProfile, loadCategories]);
 
   useEffect(() => {
     if (isReranked && allResults.length > 0) {
@@ -239,6 +263,9 @@ const App: React.FC = () => {
         isReranked={isReranked}
         totalCount={totalCount}
         loadedCount={allResults.length}
+        categories={categories}
+        currentCategory={currentCategory}
+        onCategoryChange={handleCategoryChange}
       />
 
       <div className="scroll-container" ref={scrollContainerRef}>
