@@ -14,6 +14,7 @@ export default function Dashboard() {
     stats,
     smoothedData,
     posts,
+    timeRange,
     isLoading,
     error,
     loadInitialData
@@ -50,7 +51,10 @@ export default function Dashboard() {
     );
   }
 
-  const recentPosts = [...posts].sort((a, b) => b.timestamp - a.timestamp).slice(0, 50);
+  const recentPosts = [...posts]
+    .filter(p => p.timestamp >= timeRange.start && p.timestamp <= timeRange.end)
+    .sort((a, b) => b.timestamp - a.timestamp)
+    .slice(0, 50);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">

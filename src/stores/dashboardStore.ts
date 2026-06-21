@@ -10,6 +10,8 @@ import { aggregateByTime, calculateOverallStats, mergeAggregatedData } from '../
 import { smoothData, calculateTrend } from '../utils/smoothing';
 import { fetchPostsBatch, fetchStreamPosts, mergePostsWithSentiments } from '../services/api';
 
+export const TIME_RANGE_HOURS = [1, 6, 12, 24, 24 * 7] as const;
+
 interface DashboardState {
   posts: PostWithSentiment[];
   aggregatedData: AggregatedDataPoint[];
@@ -20,13 +22,14 @@ interface DashboardState {
   granularity: Granularity;
   smoothingAlgorithm: SmoothingAlgorithm;
   timeRange: { start: number; end: number };
+  timeRangeHours: number;
   lastUpdate: number;
 
   loadInitialData: () => Promise<void>;
   updateWithStreamData: (newPosts: PostWithSentiment[]) => void;
   setGranularity: (g: Granularity) => void;
   setSmoothingAlgorithm: (a: SmoothingAlgorithm) => void;
-  setTimeRange: (start: number, end: number) => void;
+  setTimeRangeByHours: (hours: number) => void;
   refreshData: () => Promise<void>;
 }
 
@@ -69,6 +72,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     start: Date.now() - 24 * 60 * 60 * 1000,
     end: Date.now()
   },
+  timeRangeHours: 24,
   lastUpdate: 0,
 
   loadInitialData: async () => {
@@ -76,7 +80,8 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
 
     try {
       const now = Date.now();
-      const startTime = now - 24 * 60 * 60 * 1000;
+      const { timeRangeHours } = get();
+      const startTime = now - timeRangeHours * 60 * 60 * 1000;
 
       const batchData = await fetchPostsBatch(startTime, now, 50000);
       const posts = mergePostsWithSentiments(batchData.posts, batchData.sentiments);
@@ -108,23 +113,32 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   },
 
   updateWithStreamData: (newPosts: PostWithSentiment[]) => {
-    const { posts, granularity, smoothingAlgorithm, timeRange, aggregatedData } = get();
+    const { posts, granularity, smoothingAlgorithm, timeRange } = get();
+    const now = Date.now();
 
-    const allPosts = [...posts, ...newPosts];
-    const newAggregated = mergeAggregatedData(aggregatedData, newPosts, granularity);
-    const smoothed = smoothData(newAggregated, smoothingAlgorithm);
-    const overallStats = calculateOverallStats(
-      allPosts.filter(p => p.timestamp >= timeRange.start && p.timestamp <= timeRange.end)
+    const filteredNewPosts = newPosts.filter(
+      p => p.timestamp >= timeRange.start && p.timestamp <= now
+    );
+
+    if (filteredNewPosts.length === 0) return;
+
+    const allPosts = [
+      ...posts.filter(p => p.timestamp >= timeRange.start && p.timestamp <= now),
+      ...filteredNewPosts
+    ];
+
+    const { aggregated, smoothed, stats } = computeDerivedState(
+      allPosts,
+      granularity,
+      smoothingAlgorithm,
+      timeRange
     );
 
     set({
       posts: allPosts.slice(-100000),
-      aggregatedData: newAggregated,
+      aggregatedData: aggregated,
       smoothedData: smoothed,
-      stats: {
-        ...overallStats,
-        trend: calculateTrend(smoothed.polaritySmoothed)
-      },
+      stats,
       lastUpdate: Date.now()
     });
   },
@@ -142,7 +156,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   },
 
   setSmoothingAlgorithm: (smoothingAlgorithm: SmoothingAlgorithm) => {
-    const { posts, granularity, timeRange, aggregatedData } = get();
+    const { aggregatedData } = get();
     const smoothed = smoothData(aggregatedData, smoothingAlgorithm);
 
     set({
@@ -154,17 +168,32 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     });
   },
 
-  setTimeRange: (start: number, end: number) => {
+  setTimeRangeByHours: (hours: number) => {
+    const now = Date.now();
+    const start = now - hours * 60 * 60 * 1000;
+    const timeRange = { start, end: now };
+
     const { posts, granularity, smoothingAlgorithm } = get();
-    const timeRange = { start, end };
+
+    const filteredPosts = posts.filter(
+      p => p.timestamp >= start && p.timestamp <= now
+    );
+
     const { aggregated, smoothed, stats } = computeDerivedState(
-      posts,
+      filteredPosts,
       granularity,
       smoothingAlgorithm,
       timeRange
     );
 
-    set({ timeRange, aggregatedData: aggregated, smoothedData: smoothed, stats });
+    set({
+      timeRangeHours: hours,
+      timeRange,
+      posts: filteredPosts,
+      aggregatedData: aggregated,
+      smoothedData: smoothed,
+      stats
+    });
   },
 
   refreshData: async () => {

@@ -29,18 +29,13 @@ export default function ControlPanel() {
   const {
     granularity,
     smoothingAlgorithm,
+    timeRangeHours,
     setGranularity,
     setSmoothingAlgorithm,
-    setTimeRange,
+    setTimeRangeByHours,
     refreshData,
     isLoading
   } = useDashboardStore();
-
-  const handleTimeRangeChange = (hours: number) => {
-    const end = Date.now();
-    const start = end - hours * 60 * 60 * 1000;
-    setTimeRange(start, end);
-  };
 
   return (
     <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-slate-700/50 bg-slate-800/30 p-4 backdrop-blur-sm">
@@ -51,11 +46,13 @@ export default function ControlPanel() {
           {TIME_RANGE_OPTIONS.map(opt => (
             <button
               key={opt.hours}
-              onClick={() => handleTimeRangeChange(opt.hours)}
+              onClick={() => setTimeRangeByHours(opt.hours)}
               className={cn(
                 'rounded-lg px-3 py-1 text-xs font-medium transition-all',
                 'hover:bg-slate-700/50',
-                opt.hours === 24 ? 'bg-blue-500/20 text-blue-400' : 'text-slate-400'
+                timeRangeHours === opt.hours
+                  ? 'bg-blue-500/20 text-blue-400'
+                  : 'text-slate-400'
               )}
             >
               {opt.label}
