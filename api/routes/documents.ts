@@ -42,24 +42,92 @@ const upload = multer({
   },
 });
 
+function validateTextQuality(text: string): { valid: boolean; message?: string } {
+  if (!text || text.trim().length === 0) {
+    return { valid: false, message: '未能从文件中提取到文本内容' };
+  }
+  const totalChars = text.length;
+  const printableChars = text.match(/[\u4e00-\u9fa5\u3000-\u303f\uff00-\uffefA-Za-z0-9\s\n\r\t.,;:!?()（）【】《》、，。；：？！—…·\-\/\\'""]/g)?.length || 0;
+  const printableRatio = printableChars / totalChars;
+  if (printableRatio < 0.6) {
+    return { valid: false, message: '提取的文本乱码比例过高，可能是文件格式不支持。建议将老式.doc格式另存为.docx后重试。' };
+  }
+  return { valid: true };
+}
+
+function cleanExtractedText(text: string): string {
+  let cleaned = text
+    .replace(/\u0000/g, '')
+    .replace(/\u0001|\u0002|\u0003|\u0004|\u0005|\u0006|\u0007|\u0008/g, '')
+    .replace(/\u000b|\u000c|\u000e|\u000f/g, '')
+    .replace(/\u0010|\u0011|\u0012|\u0013|\u0014|\u0015|\u0016|\u0017/g, '')
+    .replace(/\u0018|\u0019|\u001a|\u001b|\u001c|\u001d|\u001e|\u001f/g, '')
+    .replace(/\u007f/g, '')
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .replace(/[ \t\u00a0]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+  return cleaned;
+}
+
 async function extractTextFromPdf(filePath: string): Promise<string> {
   const dataBuffer = fs.readFileSync(filePath);
   const data = await pdfParse(dataBuffer);
-  return data.text || '';
+  const text = data.text || '';
+  return cleanExtractedText(text);
 }
 
 async function extractTextFromWord(filePath: string, ext: string): Promise<string> {
   const dataBuffer = fs.readFileSync(filePath);
+
+  if (ext === '.doc') {
+    throw new Error('检测到老式 .doc 格式文档（Word 97-2003），当前解析器不支持此二进制格式。请将文档在 Word 中另存为 .docx 格式后重新上传。');
+  }
+
   if (ext === '.docx') {
     const result = await mammoth.extractRawText({ buffer: dataBuffer });
-    return result.value || '';
-  } else {
-    return dataBuffer.toString('utf8');
+    const text = result.value || '';
+    return cleanExtractedText(text);
   }
+
+  throw new Error('不支持的Word文档格式');
+}
+
+function detectEncoding(buffer: Buffer): 'utf8' | 'gbk' | 'gb2312' {
+  const utf8Bom = buffer.length >= 3 && buffer[0] === 0xEF && buffer[1] === 0xBB && buffer[2] === 0xBF;
+  if (utf8Bom) return 'utf8';
+
+  let hasHighBytes = false;
+  for (let i = 0; i < Math.min(buffer.length, 1024); i++) {
+    if (buffer[i] > 0x7F) {
+      hasHighBytes = true;
+      break;
+    }
+  }
+  if (!hasHighBytes) return 'utf8';
+
+  return 'utf8';
 }
 
 function extractTextFromTxt(filePath: string): string {
-  return fs.readFileSync(filePath, 'utf8');
+  const buffer = fs.readFileSync(filePath);
+  const encoding = detectEncoding(buffer);
+  let text = buffer.toString(encoding === 'utf8' ? 'utf8' : 'utf8');
+
+  if (encoding === 'utf8') {
+    const quality = validateTextQuality(text);
+    if (!quality.valid) {
+      const tryDecode = buffer.toString('latin1');
+      const cleaned = cleanExtractedText(tryDecode);
+      const quality2 = validateTextQuality(cleaned);
+      if (quality2.valid) {
+        return cleaned;
+      }
+    }
+  }
+
+  return cleanExtractedText(text);
 }
 
 router.post('/parse', upload.single('file'), async (req: Request, res: Response) => {
@@ -85,23 +153,27 @@ router.post('/parse', upload.single('file'), async (req: Request, res: Response)
         break;
       default:
         res.status(400).json({ success: false, error: '不支持的文件格式' });
+        if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
         return;
     }
 
-    if (!text || text.trim().length === 0) {
-      res.status(400).json({ success: false, error: '未能从文件中提取到文本内容' });
+    const qualityCheck = validateTextQuality(text);
+    if (!qualityCheck.valid) {
+      res.status(400).json({ success: false, error: qualityCheck.message });
+      if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
       return;
     }
 
+    const trimmed = text.trim();
     fs.unlinkSync(req.file.path);
 
     res.json({
       success: true,
       data: {
-        text: text.trim(),
+        text: trimmed,
         fileName: req.file.originalname,
         fileSize: req.file.size,
-        charCount: text.trim().length,
+        charCount: trimmed.length,
       },
     });
   } catch (error) {
