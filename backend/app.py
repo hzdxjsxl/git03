@@ -181,4 +181,11 @@ if __name__ == "__main__":
     print(f"  健康检查: http://localhost:5000/api/health")
     print("=" * 60)
 
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    print("\n正在加载缺陷检测模型...")
+    model = get_model()
+    if not model.is_loaded:
+        print("警告: 模型加载失败")
+    else:
+        print(f"模型就绪，缺陷类别: {model.get_class_names()}\n")
+
+    app.run(host="0.0.0.0", port=5000, debug=False)
