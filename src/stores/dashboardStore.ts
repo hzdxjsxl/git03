@@ -6,11 +6,14 @@ import type {
   Granularity,
   SmoothingAlgorithm
 } from '../../shared/types';
-import { aggregateByTime, calculateOverallStats, mergeAggregatedData } from '../utils/aggregation';
+import { aggregateByTime, calculateOverallStats } from '../utils/aggregation';
 import { smoothData, calculateTrend } from '../utils/smoothing';
 import { fetchPostsBatch, fetchStreamPosts, mergePostsWithSentiments } from '../services/api';
 
 export const TIME_RANGE_HOURS = [1, 6, 12, 24, 24 * 7] as const;
+
+const MAX_POSTS_CACHE = 150000;
+const INITIAL_LOAD_HOURS = 24 * 7;
 
 interface DashboardState {
   posts: PostWithSentiment[];
@@ -21,8 +24,8 @@ interface DashboardState {
   error: string | null;
   granularity: Granularity;
   smoothingAlgorithm: SmoothingAlgorithm;
-  timeRange: { start: number; end: number };
   timeRangeHours: number;
+  timeRange: { start: number; end: number };
   lastUpdate: number;
 
   loadInitialData: () => Promise<void>;
@@ -68,11 +71,11 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   error: null,
   granularity: '15min',
   smoothingAlgorithm: 'movingAverage',
+  timeRangeHours: 24,
   timeRange: {
     start: Date.now() - 24 * 60 * 60 * 1000,
     end: Date.now()
   },
-  timeRangeHours: 24,
   lastUpdate: 0,
 
   loadInitialData: async () => {
@@ -80,14 +83,16 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
 
     try {
       const now = Date.now();
-      const { timeRangeHours } = get();
-      const startTime = now - timeRangeHours * 60 * 60 * 1000;
+      const startTime = now - INITIAL_LOAD_HOURS * 60 * 60 * 1000;
 
-      const batchData = await fetchPostsBatch(startTime, now, 50000);
+      const batchData = await fetchPostsBatch(startTime, now, 60000);
       const posts = mergePostsWithSentiments(batchData.posts, batchData.sentiments);
 
-      const { granularity, smoothingAlgorithm } = get();
-      const timeRange = { start: startTime, end: now };
+      const { granularity, smoothingAlgorithm, timeRangeHours } = get();
+      const timeRange = {
+        start: now - timeRangeHours * 60 * 60 * 1000,
+        end: now
+      };
       const { aggregated, smoothed, stats } = computeDerivedState(
         posts,
         granularity,
@@ -113,19 +118,15 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   },
 
   updateWithStreamData: (newPosts: PostWithSentiment[]) => {
-    const { posts, granularity, smoothingAlgorithm, timeRange } = get();
+    const { posts, granularity, smoothingAlgorithm, timeRangeHours } = get();
     const now = Date.now();
 
-    const filteredNewPosts = newPosts.filter(
-      p => p.timestamp >= timeRange.start && p.timestamp <= now
-    );
+    const allPosts = [...posts, ...newPosts].slice(-MAX_POSTS_CACHE);
 
-    if (filteredNewPosts.length === 0) return;
-
-    const allPosts = [
-      ...posts.filter(p => p.timestamp >= timeRange.start && p.timestamp <= now),
-      ...filteredNewPosts
-    ];
+    const timeRange = {
+      start: now - timeRangeHours * 60 * 60 * 1000,
+      end: now
+    };
 
     const { aggregated, smoothed, stats } = computeDerivedState(
       allPosts,
@@ -135,7 +136,8 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     );
 
     set({
-      posts: allPosts.slice(-100000),
+      posts: allPosts,
+      timeRange,
       aggregatedData: aggregated,
       smoothedData: smoothed,
       stats,
@@ -169,18 +171,15 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   },
 
   setTimeRangeByHours: (hours: number) => {
-    const now = Date.now();
-    const start = now - hours * 60 * 60 * 1000;
-    const timeRange = { start, end: now };
-
     const { posts, granularity, smoothingAlgorithm } = get();
-
-    const filteredPosts = posts.filter(
-      p => p.timestamp >= start && p.timestamp <= now
-    );
+    const now = Date.now();
+    const timeRange = {
+      start: now - hours * 60 * 60 * 1000,
+      end: now
+    };
 
     const { aggregated, smoothed, stats } = computeDerivedState(
-      filteredPosts,
+      posts,
       granularity,
       smoothingAlgorithm,
       timeRange
@@ -189,7 +188,6 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     set({
       timeRangeHours: hours,
       timeRange,
-      posts: filteredPosts,
       aggregatedData: aggregated,
       smoothedData: smoothed,
       stats
