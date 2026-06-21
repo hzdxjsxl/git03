@@ -18,9 +18,11 @@ export const CartProvider = ({ children }) => {
   const { getActivePromotions } = usePromotion()
 
   const addToCart = useCallback((product, quantity = 1, spec = null) => {
+    const actualSpec = spec || product.specs?.[0] || null
+
     setCartItems(prev => {
       const existingIndex = prev.findIndex(
-        item => item.id === product.id && item.spec === spec
+        item => item.id === product.id && item.spec === actualSpec
       )
 
       if (existingIndex > -1) {
@@ -35,7 +37,7 @@ export const CartProvider = ({ children }) => {
         price: product.price,
         originalPrice: product.originalPrice,
         image: product.image,
-        spec: spec || product.specs?.[0] || null,
+        spec: actualSpec,
         quantity,
         stock: product.stock,
         warehouse: product.warehouse
@@ -43,7 +45,7 @@ export const CartProvider = ({ children }) => {
     })
 
     setSelectedItems(prev => {
-      const key = `${product.id}_${spec || 'default'}`
+      const key = `${product.id}_${actualSpec || 'default'}`
       if (!prev.includes(key)) {
         return [...prev, key]
       }
