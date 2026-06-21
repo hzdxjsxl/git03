@@ -37,28 +37,70 @@ export const calcGridLayout = (
 
   while (panelIdx < totalPanels) {
     const layout = layoutConfigs[pages.length % layoutConfigs.length];
-    const pagePanels = Math.min(layout.cols * layout.rows, totalPanels - panelIdx);
+    const totalCells = layout.cols * layout.rows;
+    const remaining = totalPanels - panelIdx;
     
     const cellW = (usableW - gap * (layout.cols - 1)) / layout.cols;
     const cellH = (usableH - gap * (layout.rows - 1)) / layout.rows;
     
-    const positions = [];
+    const occupied = Array.from({ length: layout.rows }, () =>
+      Array(layout.cols).fill(false)
+    );
     
-    for (let i = 0; i < pagePanels; i++) {
-      const row = Math.floor(i / layout.cols);
-      const col = i % layout.cols;
+    const positions = [];
+    let placedOnPage = 0;
+    let globalCellIdx = 0;
+    
+    const canPlaceAt = (r, c, sC, sR) => {
+      if (r + sR > layout.rows || c + sC > layout.cols) return false;
+      for (let rr = r; rr < r + sR; rr++) {
+        for (let cc = c; cc < c + sC; cc++) {
+          if (occupied[rr][cc]) return false;
+        }
+      }
+      return true;
+    };
+    
+    const markOccupied = (r, c, sC, sR) => {
+      for (let rr = r; rr < r + sR; rr++) {
+        for (let cc = c; cc < c + sC; cc++) {
+          occupied[rr][cc] = true;
+        }
+      }
+    };
+    
+    while (placedOnPage < remaining && globalCellIdx < totalCells) {
+      const row = Math.floor(globalCellIdx / layout.cols);
+      const col = globalCellIdx % layout.cols;
+      
+      if (occupied[row][col]) {
+        globalCellIdx++;
+        continue;
+      }
       
       let spanCols = 1;
       let spanRows = 1;
       
-      if (mode === 'mixed' || mode === 'auto') {
-        const seed = (panelIdx + i) % 7;
-        if (seed === 0 && col === 0 && layout.cols >= 2) spanCols = 2;
-        if (seed === 1 && row === 0 && layout.rows >= 2) spanRows = 2;
+      const needsSpan = (mode === 'mixed' || mode === 'auto') && placedOnPage < remaining - 1;
+      if (needsSpan) {
+        const seed = (panelIdx + placedOnPage + pages.length * 7) % 11;
+        
+        if (seed === 0 && canPlaceAt(row, col, 2, 1)) {
+          spanCols = 2;
+        } else if (seed === 3 && canPlaceAt(row, col, 1, 2)) {
+          spanRows = 2;
+        } else if (seed === 7 && canPlaceAt(row, col, 2, 2)) {
+          spanCols = 2;
+          spanRows = 2;
+        } else if (seed === 5 && col === 0 && canPlaceAt(row, col, layout.cols, 1)) {
+          spanCols = layout.cols;
+        }
       }
       
       spanCols = Math.min(spanCols, layout.cols - col);
       spanRows = Math.min(spanRows, layout.rows - row);
+      
+      markOccupied(row, col, spanCols, spanRows);
       
       const w = cellW * spanCols + gap * (spanCols - 1);
       const h = cellH * spanRows + gap * (spanRows - 1);
@@ -66,16 +108,21 @@ export const calcGridLayout = (
       const y = pagePadding + row * (cellH + gap);
       
       positions.push({
-        panelIndex: panelIdx + i,
+        panelIndex: panelIdx + placedOnPage,
         pageIndex: pages.length,
-        positionOnPage: i,
+        positionOnPage: placedOnPage,
         gridX: x,
         gridY: y,
         gridWidth: w,
         gridHeight: h,
         spanCols,
-        spanRows
+        spanRows,
+        gridRow: row,
+        gridCol: col
       });
+      
+      placedOnPage++;
+      globalCellIdx++;
     }
     
     pages.push({
@@ -86,7 +133,7 @@ export const calcGridLayout = (
       panels: positions
     });
     
-    panelIdx += pagePanels;
+    panelIdx += placedOnPage;
   }
 
   return pages;

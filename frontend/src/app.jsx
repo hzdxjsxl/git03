@@ -5,7 +5,8 @@ import ComicWorkspace from './components/workspace/ComicWorkspace.jsx';
 import LibraryPanel from './components/library/LibraryPanel.jsx';
 import Sidebar from './components/layout/Sidebar.jsx';
 import { useComicStore } from './store/comicStore.js';
-import { scriptApi, generateApi, libraryApi } from './services/api.js';
+import { generateApi, libraryApi } from './services/api.js';
+import { runScriptToPanels } from './utils/scriptProcessor.js';
 import './styles/app.css';
 
 export default function App() {
@@ -50,17 +51,17 @@ export default function App() {
 
     setProcessing(true);
     setError(null);
-    setProgress(0);
+    setProgress(5);
     setProgressText('正在解析剧本...');
 
     try {
-      const parsed = await scriptApi.parse(rawScript);
-      setParsedScript(parsed.data);
+      await new Promise(r => setTimeout(r, 150));
+      const { parsedScript, panels } = runScriptToPanels(rawScript, layoutStyle);
+      setParsedScript(parsedScript);
       setProgress(20);
 
-      setProgressText('正在拆分为分镜...');
-      const panelRes = await scriptApi.toPanels(parsed.data, layoutStyle);
-      const panels = panelRes.data.panels;
+      setProgressText(`已拆分 ${panels.length} 个分镜...`);
+      await new Promise(r => setTimeout(r, 200));
       setPanels(panels);
       setProgress(40);
 

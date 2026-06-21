@@ -188,7 +188,20 @@ export default function SpeechBubble({
   };
 
   const commitEdit = () => {
-    onChange({ text: editText });
+    const fullText = (bubble.character ? bubble.character + '：' : '') + editText;
+    const size = estimateTextSize(fullText, 14);
+    const baseW = 10 + (size.width / 300) * 60;
+    const baseH = 8 + (size.height / 100) * 35;
+    const newW = constrainToBounds(Math.max(15, Math.min(70, baseW)), 12, 80);
+    const newH = constrainToBounds(Math.max(10, Math.min(40, baseH)), 8, 50);
+    onChange({
+      text: editText,
+      defaultPosition: {
+        ...position,
+        width: Math.round(newW * 10) / 10,
+        height: Math.round(newH * 10) / 10
+      }
+    });
     setIsEditing(false);
   };
 

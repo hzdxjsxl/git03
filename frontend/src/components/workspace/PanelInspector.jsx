@@ -35,6 +35,9 @@ export default function PanelInspector({ panel, panels }) {
     comicStyle
   } = useComicStore();
 
+  const generated = useComicStore((s) => (panel ? s.generatedPanels[panel.id] : undefined));
+  const selectedBubble = panel?.defaultBubbles?.find((b) => b.id === selectedBubbleId);
+
   const [regenerating, setRegenerating] = useState(false);
 
   if (!panel) {
@@ -71,9 +74,6 @@ export default function PanelInspector({ panel, panels }) {
       </div>
     );
   }
-
-  const generated = useComicStore((s) => s.generatedPanels[panel.id]);
-  const selectedBubble = panel.defaultBubbles?.find((b) => b.id === selectedBubbleId);
 
   const handleRegenerate = async () => {
     setRegenerating(true);

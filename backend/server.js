@@ -4,7 +4,6 @@ const path = require('path');
 
 const generateRoutes = require('./routes/generate');
 const libraryRoutes = require('./routes/library');
-const scriptRoutes = require('./routes/script');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
@@ -18,7 +17,6 @@ app.use('/static', express.static(path.join(__dirname, 'data', 'library')));
 
 app.use('/api/generate', generateRoutes);
 app.use('/api/library', libraryRoutes);
-app.use('/api/script', scriptRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
