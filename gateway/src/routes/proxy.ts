@@ -4,7 +4,7 @@ import { config } from '../config';
 
 const router = Router();
 
-const proxyOptions: Options = {
+const proxyOptions: any = {
   target: config.recommendationServiceUrl,
   changeOrigin: true,
   pathRewrite: {
@@ -13,10 +13,6 @@ const proxyOptions: Options = {
   },
   proxyTimeout: 30000,
   timeout: 30000,
-};
-
-const enhanceProxyOptions: any = {
-  ...proxyOptions,
   onProxyReq: (proxyReq: any, req: Request) => {
     const userId = req.headers['x-user-id'];
     if (userId) {
@@ -38,7 +34,7 @@ const enhanceProxyOptions: any = {
   },
 };
 
-const recommendationProxy = createProxyMiddleware(enhanceProxyOptions);
+const recommendationProxy = createProxyMiddleware(proxyOptions);
 
 router.use('/api/recommend', recommendationProxy);
 router.use('/api/user', recommendationProxy);

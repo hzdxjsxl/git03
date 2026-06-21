@@ -28,6 +28,8 @@ export interface RecommendationResponse {
   timestamp: number;
   totalCount: number;
   hasMore: boolean;
+  offset: number;
+  nextOffset?: number;
 }
 
 export interface ScrollBehavior {

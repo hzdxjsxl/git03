@@ -8,15 +8,16 @@ const router = Router();
 router.get('/feed', extractUserId, (req: Request, res: Response) => {
   const userId = (req as any).userId;
   const limit = parseInt(req.query.limit as string) || config.recommendation.defaultLimit;
-  const page = parseInt(req.query.page as string) || 0;
+  const offset = parseInt(req.query.offset as string) || 0;
   const category = req.query.category as string | undefined;
+  const refresh = req.query.refresh === 'true';
 
   const startTime = Date.now();
-  const result = recommenderService.getRecommendations(userId, limit, page, { category });
+  const result = recommenderService.getRecommendations(userId, limit, offset, { category, refresh });
   const latency = Date.now() - startTime;
 
   res.setHeader('X-Response-Time', `${latency}ms`);
-  
+
   res.json({
     status: 'success',
     data: result,
@@ -43,7 +44,7 @@ router.get('/similar/:productId', (req: Request, res: Response) => {
   }
 
   res.setHeader('X-Response-Time', `${latency}ms`);
-  
+
   res.json({
     status: 'success',
     data: result,
@@ -62,7 +63,7 @@ router.get('/trending', (_req: Request, res: Response) => {
   const latency = Date.now() - startTime;
 
   res.setHeader('X-Response-Time', `${latency}ms`);
-  
+
   res.json({
     status: 'success',
     data: result,

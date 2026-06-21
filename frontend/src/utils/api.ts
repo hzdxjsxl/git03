@@ -21,16 +21,20 @@ export const getUserId = (): string => {
 export const apiClient = {
   async getRecommendations(
     limit: number = 20,
-    page: number = 0,
-    category?: string
+    offset: number = 0,
+    category?: string,
+    refresh: boolean = false
   ): Promise<RecommendationResponse> {
     const userId = getUserId();
     const params = new URLSearchParams({
       limit: limit.toString(),
-      page: page.toString(),
+      offset: offset.toString(),
     });
     if (category) {
       params.append('category', category);
+    }
+    if (refresh) {
+      params.append('refresh', 'true');
     }
 
     const response = await fetch(`${API_BASE}/recommend/feed?${params.toString()}`, {

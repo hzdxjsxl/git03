@@ -7,6 +7,8 @@ interface HeaderProps {
   onResetProfile: () => void;
   onRerank: () => void;
   isReranked: boolean;
+  totalCount: number;
+  loadedCount: number;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -15,6 +17,8 @@ export const Header: React.FC<HeaderProps> = ({
   onResetProfile,
   onRerank,
   isReranked,
+  totalCount,
+  loadedCount,
 }) => {
   const [showStats, setShowStats] = useState(false);
 
@@ -30,7 +34,14 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="header-content">
         <div className="logo-section">
           <h1 className="app-title">🎯 智能推荐</h1>
-          <p className="app-subtitle">基于实时行为画像的个性化推荐</p>
+          <p className="app-subtitle">
+            基于实时行为画像的个性化推荐
+            {totalCount > 0 && (
+              <span style={{ marginLeft: 8, opacity: 0.7, fontSize: 12 }}>
+                {loadedCount}/{totalCount}
+              </span>
+            )}
+          </p>
         </div>
 
         <div className="header-actions">
@@ -40,14 +51,14 @@ export const Header: React.FC<HeaderProps> = ({
           >
             {isReranked ? '🔄 已重排' : '🎯 智能重排'}
           </button>
-          
+
           <button
             className="stats-toggle"
             onClick={() => setShowStats(!showStats)}
           >
             📊
           </button>
-          
+
           <button className="reset-button" onClick={onResetProfile}>
             ↺ 重置
           </button>
@@ -65,14 +76,14 @@ export const Header: React.FC<HeaderProps> = ({
               {speedIndicator.label}
             </span>
           </div>
-          
+
           <div className="stat-item">
             <span className="stat-label">平均速度</span>
             <span className="stat-value">
               {scrollBehavior.avgSpeed.toFixed(0)} px/s
             </span>
           </div>
-          
+
           <div className="stat-item">
             <span className="stat-label">滑动方向</span>
             <span className="stat-value">
@@ -84,18 +95,25 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
           </div>
 
+          <div className="stat-item">
+            <span className="stat-label">已加载</span>
+            <span className="stat-value">
+              {loadedCount} / {totalCount}
+            </span>
+          </div>
+
           {userProfile && (
             <>
               <div className="stat-item">
                 <span className="stat-label">用户ID</span>
                 <span className="stat-value mono">{userProfile.userId.slice(-8)}</span>
               </div>
-              
+
               <div className="stat-item">
                 <span className="stat-label">行为次数</span>
                 <span className="stat-value">{userProfile.behaviorCount}</span>
               </div>
-              
+
               <div className="stat-item full-width">
                 <span className="stat-label">偏好品类</span>
                 <div className="preferred-categories">

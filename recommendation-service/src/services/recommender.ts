@@ -1,30 +1,78 @@
+import { LRUCache } from 'lru-cache';
 import { RecommendationResult, RecommendationResponse, UserProfile } from '../types';
 import { vectorDb } from './vectorDatabase';
 import { userProfileService } from './userProfile';
 import { config } from '../config';
-import { cosineSimilarity } from '../utils/vector';
+
+interface CachedRecommendation {
+  results: RecommendationResult[];
+  timestamp: number;
+}
 
 export class RecommenderService {
+  private sessionCache: LRUCache<string, CachedRecommendation>;
+  private sessionTTL: number = 5 * 60 * 1000;
+
+  constructor() {
+    this.sessionCache = new LRUCache<string, CachedRecommendation>({
+      max: 5000,
+      ttl: this.sessionTTL,
+    });
+  }
+
   public getRecommendations(
     userId: string,
     limit: number = 20,
-    page: number = 0,
+    offset: number = 0,
     options?: {
       category?: string;
-      includeMetadata?: boolean;
+      refresh?: boolean;
     }
   ): RecommendationResponse {
-    const profile = userProfileService.getOrCreateProfile(userId);
-    const preferenceVector = userProfileService.getPreferenceVector(userId);
-    const filters = userProfileService.getFilters(userId);
-
     const effectiveLimit = Math.min(
       Math.max(limit, config.recommendation.minLimit),
       config.recommendation.maxLimit
     );
 
-    const vectorResults = vectorDb.search(preferenceVector, effectiveLimit * 3, {
-      category: options?.category,
+    const cacheKey = `rec:${userId}`;
+    let cached = this.sessionCache.get(cacheKey);
+    const shouldRefresh = options?.refresh || !cached;
+
+    if (shouldRefresh) {
+      cached = this.buildFullRecommendationList(userId, options?.category);
+      this.sessionCache.set(cacheKey, cached);
+    }
+
+    if (!cached) {
+      cached = this.buildFullRecommendationList(userId, options?.category);
+      this.sessionCache.set(cacheKey, cached);
+    }
+
+    const allResults = cached.results;
+    const paginatedResults = allResults.slice(offset, offset + effectiveLimit);
+    const hasMore = offset + effectiveLimit < allResults.length;
+
+    return {
+      userId,
+      results: paginatedResults.map((r, i) => ({ ...r, rank: offset + i + 1 })),
+      timestamp: Date.now(),
+      totalCount: allResults.length,
+      hasMore,
+      offset,
+      nextOffset: hasMore ? offset + effectiveLimit : undefined,
+    };
+  }
+
+  private buildFullRecommendationList(
+    userId: string,
+    category?: string
+  ): CachedRecommendation {
+    const profile = userProfileService.getOrCreateProfile(userId);
+    const preferenceVector = userProfileService.getPreferenceVector(userId);
+    const filters = userProfileService.getFilters(userId);
+
+    const vectorResults = vectorDb.searchAll(preferenceVector, {
+      category,
       priceRange: filters.priceRange,
     });
 
@@ -35,11 +83,11 @@ export class RecommenderService {
       const recencyBoost = this.getRecencyBoost(item.product);
       const diversityPenalty = this.getDiversityPenalty(index, vectorResults.length);
 
-      const finalScore = 
-        baseScore * 0.5 + 
-        categoryBoost * 0.2 + 
-        popularityBoost * 0.15 + 
-        recencyBoost * 0.1 + 
+      const finalScore =
+        baseScore * 0.5 +
+        categoryBoost * 0.2 +
+        popularityBoost * 0.15 +
+        recencyBoost * 0.1 +
         diversityPenalty * 0.05;
 
       const reasoning = this.generateReasoning(item.product, profile, baseScore, categoryBoost, popularityBoost);
@@ -54,17 +102,18 @@ export class RecommenderService {
 
     results.sort((a, b) => b.score - a.score);
 
-    const start = page * effectiveLimit;
-    const paginatedResults = results.slice(start, start + effectiveLimit);
-    const hasMore = start + effectiveLimit < results.length;
+    results.forEach((r, i) => {
+      r.rank = i + 1;
+    });
 
     return {
-      userId,
-      results: paginatedResults.map((r, i) => ({ ...r, rank: i + 1 })),
+      results,
       timestamp: Date.now(),
-      totalCount: results.length,
-      hasMore,
     };
+  }
+
+  public invalidateSession(userId: string): void {
+    this.sessionCache.delete(`rec:${userId}`);
   }
 
   private getCategoryBoost(category: string, profile: UserProfile): number {
@@ -124,7 +173,7 @@ export class RecommenderService {
       reasoning.push('高评分商品');
     }
 
-    const matchingTags = product.tags.filter(tag => 
+    const matchingTags = product.tags.filter(tag =>
       Object.keys(profile.interests).includes(tag));
     if (matchingTags.length > 0) {
       reasoning.push(`包含您喜欢的特点：${matchingTags.slice(0, 2).join('、')}`);

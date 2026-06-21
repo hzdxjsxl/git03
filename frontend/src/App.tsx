@@ -7,17 +7,22 @@ import { WaterfallLayout } from './components/WaterfallLayout';
 import { Header } from './components/Header';
 import { LoadingSpinner, LoadMoreIndicator, EndOfFeed } from './components/LoadingSpinner';
 
+const PAGE_SIZE = 20;
+
 const App: React.FC = () => {
   const [allResults, setAllResults] = useState<RecommendationResult[]>([]);
   const [displayResults, setDisplayResults] = useState<RecommendationResult[]>([]);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [page, setPage] = useState(0);
+  const [currentOffset, setCurrentOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [isReranked, setIsReranked] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [totalCount, setTotalCount] = useState(0);
   const initialLoadDone = useRef(false);
+  const loadingRef = useRef(false);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   const {
     scrollBehavior,
@@ -32,7 +37,7 @@ const App: React.FC = () => {
 
   function handleDwellTime(records: DwellTimeRecord[]) {
     reranker.updateDwellTime(records);
-    
+
     records.forEach((record) => {
       const product = allResults.find(
         (r) => r.product.id === record.productId
@@ -44,18 +49,24 @@ const App: React.FC = () => {
   }
 
   const loadRecommendations = useCallback(
-    async (pageNum: number, append: boolean = true) => {
+    async (offset: number, append: boolean = true) => {
+      if (loadingRef.current) return;
+      loadingRef.current = true;
+
       try {
-        if (pageNum === 0) {
+        if (offset === 0) {
           setLoading(true);
         } else {
           setLoadingMore(true);
         }
         setError(null);
 
-        const response = await apiClient.getRecommendations(20, pageNum);
-
+        const response = await apiClient.getRecommendations(PAGE_SIZE, offset);
         const newResults = response.results;
+
+        setTotalCount(response.totalCount);
+        setHasMore(response.hasMore);
+        setCurrentOffset(response.nextOffset ?? offset + PAGE_SIZE);
 
         if (append) {
           setAllResults((prev) => {
@@ -76,9 +87,6 @@ const App: React.FC = () => {
           setAllResults(newResults);
           setDisplayResults(newResults);
         }
-
-        setHasMore(response.hasMore);
-        setPage(pageNum + 1);
       } catch (err) {
         setError(
           err instanceof Error ? err.message : '加载推荐失败，请稍后重试'
@@ -86,6 +94,7 @@ const App: React.FC = () => {
       } finally {
         setLoading(false);
         setLoadingMore(false);
+        loadingRef.current = false;
       }
     },
     []
@@ -100,12 +109,24 @@ const App: React.FC = () => {
     }
   }, []);
 
-  const handleRerank = useCallback(() => {
+  const handleRerank = useCallback(async () => {
     if (allResults.length === 0) return;
 
-    const reranked = reranker.rerank(allResults, scrollBehavior);
-    setDisplayResults(reranked);
-    setIsReranked(true);
+    try {
+      const response = await apiClient.getRecommendations(PAGE_SIZE, 0, undefined, true);
+      const reranked = reranker.rerank(response.results, scrollBehavior);
+      setAllResults(response.results);
+      setDisplayResults(reranked);
+      setHasMore(response.hasMore);
+      setCurrentOffset(response.nextOffset ?? PAGE_SIZE);
+      setTotalCount(response.totalCount);
+      setIsReranked(true);
+    } catch (err) {
+      console.error('Rerank failed:', err);
+      const reranked = reranker.rerank(allResults, scrollBehavior);
+      setDisplayResults(reranked);
+      setIsReranked(true);
+    }
 
     loadUserProfile();
   }, [allResults, scrollBehavior, loadUserProfile]);
@@ -118,17 +139,18 @@ const App: React.FC = () => {
     setAllResults([]);
     setDisplayResults([]);
     setIsReranked(false);
-    setPage(0);
+    setCurrentOffset(0);
     setHasMore(true);
+    setTotalCount(0);
     initialLoadDone.current = false;
     await Promise.all([loadRecommendations(0, false), loadUserProfile()]);
   }, [loadRecommendations, loadUserProfile, resetDwellTimeRecords]);
 
   const handleLoadMore = useCallback(() => {
-    if (!loadingMore && hasMore && !loading) {
-      loadRecommendations(page, true);
+    if (!loadingRef.current && hasMore) {
+      loadRecommendations(currentOffset, true);
     }
-  }, [loadingMore, hasMore, loading, page, loadRecommendations]);
+  }, [hasMore, currentOffset, loadRecommendations]);
 
   useEffect(() => {
     if (!initialLoadDone.current) {
@@ -145,21 +167,25 @@ const App: React.FC = () => {
   }, [scrollBehavior.avgSpeed, isReranked, allResults]);
 
   useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
 
-    const handleScrollEnd = () => {
-      const { scrollTop, scrollHeight, clientHeight } = container;
-      const threshold = 200;
-
-      if (scrollTop + clientHeight >= scrollHeight - threshold) {
-        handleLoadMore();
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingRef.current) {
+          handleLoadMore();
+        }
+      },
+      {
+        root: scrollContainerRef.current,
+        rootMargin: '200px',
+        threshold: 0,
       }
-    };
+    );
 
-    container.addEventListener('scroll', handleScrollEnd, { passive: true });
-    return () => container.removeEventListener('scroll', handleScrollEnd);
-  }, [scrollContainerRef, handleLoadMore]);
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [handleLoadMore, hasMore, scrollContainerRef]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -211,6 +237,8 @@ const App: React.FC = () => {
         onResetProfile={handleResetProfile}
         onRerank={handleRerank}
         isReranked={isReranked}
+        totalCount={totalCount}
+        loadedCount={allResults.length}
       />
 
       <div className="scroll-container" ref={scrollContainerRef}>
@@ -227,6 +255,11 @@ const App: React.FC = () => {
               <LoadMoreIndicator visible={loadingMore} />
 
               {!hasMore && !loadingMore && <EndOfFeed />}
+
+              <div
+                ref={sentinelRef}
+                style={{ height: 1, width: '100%' }}
+              />
             </>
           ) : (
             <div className="empty-state">
