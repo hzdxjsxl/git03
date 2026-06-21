@@ -91,11 +91,11 @@ export default function UploadPage() {
   }, []);
 
   const processFile = useCallback(async (file: File) => {
-    const validTypes = ['.txt', '.pdf', '.doc', '.docx'];
+    const validTypes = ['.txt', '.pdf', '.docx'];
     const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
 
     if (!validTypes.includes(fileExtension)) {
-      alert('请上传 .txt, .pdf, .doc, .docx 格式的文件');
+      alert('请上传 .txt, .pdf, .docx 格式的文件');
       return;
     }
 
@@ -206,7 +206,7 @@ export default function UploadPage() {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".txt,.pdf,.doc,.docx"
+              accept=".txt,.pdf,.docx"
               onChange={handleFileSelect}
               className="hidden"
             />
@@ -227,7 +227,7 @@ export default function UploadPage() {
               {parsingFile ? '正在解析文件...' : isDragging ? '释放文件以上传' : '拖拽文件到此处'}
             </h3>
             <p className="text-slate-400 text-center mb-4">
-              支持 .txt, .pdf, .doc, .docx 格式
+              支持 .txt, .pdf, .docx 格式
             </p>
             {!parsingFile && (
               <button className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors">

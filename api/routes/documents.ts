@@ -32,12 +32,12 @@ const upload = multer({
   storage,
   limits: { fileSize: 20 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const allowedTypes = ['.txt', '.pdf', '.doc', '.docx'];
+    const allowedTypes = ['.txt', '.pdf', '.docx'];
     const ext = path.extname(file.originalname).toLowerCase();
     if (allowedTypes.includes(ext)) {
       cb(null, true);
     } else {
-      cb(new Error('不支持的文件格式，仅支持 .txt, .pdf, .doc, .docx'));
+      cb(new Error('不支持的文件格式，仅支持 .txt, .pdf, .docx'));
     }
   },
 });
@@ -78,20 +78,11 @@ async function extractTextFromPdf(filePath: string): Promise<string> {
   return cleanExtractedText(text);
 }
 
-async function extractTextFromWord(filePath: string, ext: string): Promise<string> {
+async function extractTextFromWord(filePath: string): Promise<string> {
   const dataBuffer = fs.readFileSync(filePath);
-
-  if (ext === '.doc') {
-    throw new Error('检测到老式 .doc 格式文档（Word 97-2003），当前解析器不支持此二进制格式。请将文档在 Word 中另存为 .docx 格式后重新上传。');
-  }
-
-  if (ext === '.docx') {
-    const result = await mammoth.extractRawText({ buffer: dataBuffer });
-    const text = result.value || '';
-    return cleanExtractedText(text);
-  }
-
-  throw new Error('不支持的Word文档格式');
+  const result = await mammoth.extractRawText({ buffer: dataBuffer });
+  const text = result.value || '';
+  return cleanExtractedText(text);
 }
 
 function detectEncoding(buffer: Buffer): 'utf8' | 'gbk' | 'gb2312' {
@@ -144,9 +135,8 @@ router.post('/parse', upload.single('file'), async (req: Request, res: Response)
       case '.pdf':
         text = await extractTextFromPdf(req.file.path);
         break;
-      case '.doc':
       case '.docx':
-        text = await extractTextFromWord(req.file.path, ext);
+        text = await extractTextFromWord(req.file.path);
         break;
       case '.txt':
         text = extractTextFromTxt(req.file.path);
